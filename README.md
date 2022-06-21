@@ -5,7 +5,7 @@
   <br />
 </p>
 
-# Amplitude-{LanguageName}
+# Amplitude-Go
 
 This is Amplitude's latest version of the Go SDK.
 
