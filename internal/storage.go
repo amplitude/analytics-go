@@ -1,7 +1,7 @@
 package internal
 
 import (
-	"github.com/amplitude/Amplitude-Go/pkg/analytics"
+	"github.com/amplitude/Amplitude-Go/pkg/amplitude"
 )
 
 type Storage interface {
@@ -11,7 +11,7 @@ type Storage interface {
 }
 
 type StorageProvider interface {
-	getStorage() Storage
+	GetStorage() Storage
 }
 
 type InMemoryStorage struct {
@@ -19,14 +19,14 @@ type InMemoryStorage struct {
 	//bufferData
 	//readyQueue
 	//bufferLockCv
-	configuration analytics.Config
+	configuration amplitude.Config
 	workers       Workers
 }
 
-func (i *InMemoryStorage) setup(configuration analytics.Config, workers Workers) {
+func (i *InMemoryStorage) setup(configuration amplitude.Config, workers Workers) {
 }
 
-func (i InMemoryStorage) push(event BaseEvent, delay int64) {
+func (i InMemoryStorage) push(event amplitude.BaseEvent, delay int64) {
 
 }
 
@@ -38,7 +38,7 @@ func (i InMemoryStorage) pullAll() {
 
 }
 
-func (i InMemoryStorage) insertEvent(totalDelay int64, event BaseEvent) {
+func (i InMemoryStorage) insertEvent(totalDelay int64, event amplitude.BaseEvent) {
 
 }
 

@@ -1,4 +1,4 @@
-package internal
+package amplitude
 
 type Plan struct {
 	branch    string
