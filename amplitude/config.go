@@ -1,7 +1,6 @@
 package amplitude
 
 import (
-	"github.com/amplitude/Amplitude-Go/internal"
 	"log"
 )
 
@@ -14,7 +13,7 @@ type Config struct {
 	Callback            interface{}
 	ServerZone          string
 	UseBatch            bool
-	StorageProvider     internal.StorageProvider
+	StorageProvider     StorageProvider
 	OptOut              bool
 	plan                Plan
 
@@ -23,7 +22,7 @@ type Config struct {
 	FlushSizeDivider int
 }
 
-func getStorage(c *Config) internal.Storage {
+func getStorage(c *Config) Storage {
 	return c.StorageProvider.GetStorage()
 }
 

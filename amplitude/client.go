@@ -1,10 +1,8 @@
 package amplitude
 
-import "github.com/amplitude/Amplitude-Go/internal"
-
 type Amplitude struct {
 	Configuration Config
-	timeline      internal.Timeline
+	timeline      Timeline
 }
 
 func (a Amplitude) Track(event BaseEvent) {
@@ -31,11 +29,11 @@ func (a Amplitude) Flush() {
 
 }
 
-func (a Amplitude) Add(plugin internal.Plugin) {
+func (a Amplitude) Add(plugin Plugin) {
 
 }
 
-func (a Amplitude) Remove(plugin internal.Plugin) {
+func (a Amplitude) Remove(plugin Plugin) {
 
 }
 

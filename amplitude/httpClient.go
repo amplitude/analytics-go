@@ -1,4 +1,4 @@
-package internal
+package amplitude
 
 type HttpStatus struct {
 }
