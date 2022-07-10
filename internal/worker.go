@@ -1,4 +1,4 @@
 package internal
 
-type Workers struct {
+type Worker struct {
 }

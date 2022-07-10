@@ -1,4 +1,4 @@
 package internal
 
-type TimeLine struct {
+type Timeline struct {
 }

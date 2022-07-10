@@ -15,18 +15,18 @@ type StorageProvider interface {
 }
 
 type InMemoryStorage struct {
-	totalEvents int64
+	totalEvents int
 	//bufferData
 	//readyQueue
 	//bufferLockCv
 	configuration amplitude.Config
-	workers       Workers
+	workers       Worker
 }
 
-func (i *InMemoryStorage) setup(configuration amplitude.Config, workers Workers) {
+func (i *InMemoryStorage) setup(configuration amplitude.Config, workers Worker) {
 }
 
-func (i InMemoryStorage) push(event amplitude.BaseEvent, delay int64) {
+func (i InMemoryStorage) push(event amplitude.BaseEvent, delay int) {
 
 }
 
@@ -38,11 +38,11 @@ func (i InMemoryStorage) pullAll() {
 
 }
 
-func (i InMemoryStorage) insertEvent(totalDelay int64, event amplitude.BaseEvent) {
+func (i InMemoryStorage) insertEvent(totalDelay int, event amplitude.BaseEvent) {
 
 }
 
-func (i InMemoryStorage) getRetryDelay(retry int64) {
+func (i InMemoryStorage) getRetryDelay(retry int) {
 
 }
 

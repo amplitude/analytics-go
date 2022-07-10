@@ -7,10 +7,10 @@ import (
 
 type Config struct {
 	ApiKey              string
-	FlushIntervalMillis int64
-	FlushMaxRetries     int64
+	FlushIntervalMillis int
+	FlushMaxRetries     int
 	Logger              log.Logger
-	MidIdLength         int64
+	MinIdLength         int
 	Callback            interface{}
 	ServerZone          string
 	UseBatch            bool
@@ -19,7 +19,7 @@ type Config struct {
 	plan                Plan
 
 	Url              string
-	FlushQueueSize   int64
+	FlushQueueSize   int
 	FlushSizeDivider int
 }
 
@@ -35,7 +35,7 @@ func (c Config) isValid() bool {
 }
 
 func (c Config) isMinIdLengthValid() bool {
-	if c.MidIdLength > 0 {
+	if c.MinIdLength > 0 {
 		return true
 	}
 	return false

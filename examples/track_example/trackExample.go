@@ -2,7 +2,7 @@ package track_example
 
 import "github.com/amplitude/Amplitude-Go/pkg/amplitude"
 
-func callbackFunc(e string, code int64, message string) {
+func callbackFunc(e string, code int, message string) {
 	println(e)
 	println(code, message)
 }

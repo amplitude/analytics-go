@@ -4,41 +4,41 @@ import "github.com/amplitude/Amplitude-Go/internal"
 
 type Amplitude struct {
 	Configuration Config
-	timeline      internal.TimeLine
+	timeline      internal.Timeline
 }
 
-func (a Amplitude) track(event BaseEvent) {
-
-}
-
-func (a Amplitude) identify(identityObj Identity, eventOptions EventOptions, eventProperties map[string]string) {
+func (a Amplitude) Track(event BaseEvent) {
 
 }
 
-func (a Amplitude) groupIdentify(groupType string, groupName string, identifyObj Identity, EventOptions EventOptions, eventProperties map[string]string, userProperties map[string]string) {
+func (a Amplitude) Identify(identityObj Identity, eventOptions EventOptions, eventProperties map[string]string) {
 
 }
 
-func (a Amplitude) revenue(revenueObj Revenue, eventOptions EventOptions) {
+func (a Amplitude) GroupIdentify(groupType string, groupName string, identifyObj Identity, EventOptions EventOptions, eventProperties map[string]string) {
 
 }
 
-func (a Amplitude) setGroup(groupType string, groupName string, eventOptions EventOptions) {
+func (a Amplitude) Revenue(revenueObj Revenue, eventOptions EventOptions) {
 
 }
 
-func (a Amplitude) flush() {
+func (a Amplitude) SetGroup(groupType string, groupName string, eventOptions EventOptions) {
 
 }
 
-func (a Amplitude) add(plugin internal.Plugin) {
+func (a Amplitude) Flush() {
 
 }
 
-func (a Amplitude) remove(plugin internal.Plugin) {
+func (a Amplitude) Add(plugin internal.Plugin) {
 
 }
 
-func (a Amplitude) shutdown() {
+func (a Amplitude) Remove(plugin internal.Plugin) {
+
+}
+
+func (a Amplitude) Shutdown() {
 
 }

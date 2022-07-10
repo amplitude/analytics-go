@@ -1,6 +1,6 @@
 package internal
 
-type PluginType int64
+type PluginType int
 
 //type euZone struct {
 //	BATCH   string
