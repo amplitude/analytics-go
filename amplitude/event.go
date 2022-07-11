@@ -22,9 +22,11 @@ func (b BaseEvent) loadEventOptions(options EventOptions) {
 
 }
 
+// An Identity helps to generate an IdentifyEvent or a GroupIdentifyEvent instance
+// with special eventType and userProperties/ groupProperties
 type Identity struct {
-	properties_set map[string]string
-	properties     map[string]string
+	propertiesSet map[string]string
+	properties    map[string]string
 }
 
 func (i Identity) set(key string, value string) {
@@ -75,6 +77,9 @@ type IdentifyEvent struct {
 	BaseEvent
 }
 
+// A Revenue helps to generate a RevenueEvent
+// with special event type
+// and revenue information like price, quantity, product id, receipt,etc.
 type Revenue struct {
 	price       float64
 	quantity    int
