@@ -11,10 +11,7 @@ type StorageProvider interface {
 }
 
 type InMemoryStorage struct {
-	totalEvents int
-	//bufferData
-	//readyQueue
-	//bufferLockCv
+	totalEvents   int
 	configuration Config
 	workers       Worker
 }

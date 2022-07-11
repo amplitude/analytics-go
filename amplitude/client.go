@@ -13,7 +13,7 @@ func (a Amplitude) Identify(identityObj Identity, eventOptions EventOptions, eve
 
 }
 
-func (a Amplitude) GroupIdentify(groupType string, groupName string, identifyObj Identity, EventOptions EventOptions, eventProperties map[string]string) {
+func (a Amplitude) GroupIdentify(groupType string, groupName string, identifyObj Identity, eventOptions EventOptions, eventProperties map[string]string) {
 
 }
 
