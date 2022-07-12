@@ -5,9 +5,7 @@ import (
 	"time"
 )
 
-type Callback interface {
-	callback(event BaseEvent, code int, message ...string)
-}
+type Callback = func(event BaseEvent, code int, message ...string)
 
 type Config struct {
 	APIKey              string
