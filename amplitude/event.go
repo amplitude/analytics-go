@@ -4,7 +4,7 @@ type Plan struct {
 	branch    string
 	source    string
 	version   string
-	versionId string
+	versionID string
 }
 
 func (p *Plan) getPlanBody() {

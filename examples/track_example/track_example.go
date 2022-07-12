@@ -15,13 +15,13 @@ func callbackFunc(e string, code int, message string) {
 
 func main() {
 
-	var config = amplitude.Config{ApiKey: "your_api_key"}
+	config := amplitude.Config{APIKey: "your_api_key"}
 
 	// Config callback function (optional)
-	var client = amplitude.Amplitude{Configuration: config}
+	client := amplitude.Amplitude{Configuration: config}
 
 	// Create a BaseEvent instance
-	var event = amplitude.BaseEvent{}
+	event := amplitude.BaseEvent{}
 
 	// Track an event
 	client.Track(event)

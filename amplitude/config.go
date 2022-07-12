@@ -2,48 +2,40 @@ package amplitude
 
 import (
 	"log"
+	"time"
 )
 
+type Callback interface {
+	callback(event BaseEvent, code int, message ...string)
+}
+
 type Config struct {
-	ApiKey              string
-	FlushIntervalMillis int
+	APIKey              string
+	FlushIntervalMillis time.Duration
+	FlushQueueSize      int
 	FlushMaxRetries     int
 	Logger              log.Logger
-	MinIdLength         int
-	Callback            interface{}
+	MinIDLength         int
+	Callback            Callback
 	ServerZone          string
 	UseBatch            bool
 	StorageProvider     StorageProvider
 	OptOut              bool
-	plan                Plan
-
-	Url              string
-	FlushQueueSize   int
-	FlushSizeDivider int
+	Plan                Plan
+	ServerURL           string
 }
 
 func getStorage(c *Config) Storage {
 	return c.StorageProvider.GetStorage()
 }
 
-func (c Config) isValid() bool {
-	if c.ApiKey != "" || c.FlushQueueSize <= 0 || c.FlushIntervalMillis <= 0 || !c.isMinIdLengthValid() {
+func (c Config) IsValid() bool {
+	if c.APIKey == "" || c.FlushQueueSize <= 0 || c.FlushIntervalMillis <= 0 || !c.IsMinIDLengthValid() {
 		return false
 	}
 	return true
 }
 
-func (c Config) isMinIdLengthValid() bool {
-	if c.MinIdLength > 0 {
-		return true
-	}
-	return false
-}
-
-func (c Config) increaseFlushDivider() {
-	c.FlushSizeDivider += 1
-}
-
-func (c Config) resetFlushDivider() {
-	c.FlushSizeDivider = 1
+func (c Config) IsMinIDLengthValid() bool {
+	return c.MinIDLength > 0
 }
