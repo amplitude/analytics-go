@@ -2,16 +2,21 @@ package amplitude
 
 import (
 	"log"
+	"time"
 )
+
+type Callback interface {
+	callback(event BaseEvent, code int, message ...string)
+}
 
 type Config struct {
 	APIKey              string
-	FlushIntervalMillis int
+	FlushIntervalMillis time.Duration
 	FlushQueueSize      int
 	FlushMaxRetries     int
 	Logger              log.Logger
 	MinIDLength         int
-	Callback            interface{}
+	Callback            Callback
 	ServerZone          string
 	UseBatch            bool
 	StorageProvider     StorageProvider

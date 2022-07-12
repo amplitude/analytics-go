@@ -6,7 +6,7 @@ const (
 	SdkLibrary = "amplitude-go"
 	SdkVersion = "0.0.0"
 
-	EuZone      = "EU"
+	EUZone      = "EU"
 	DefaultZone = "US"
 	Batch       = "batch"
 	HTTPV2      = "v2"
