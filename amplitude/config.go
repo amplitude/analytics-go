@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Callback = func(event BaseEvent, code int, message ...string)
+type EventCallback = func(event BaseEvent, code int, message ...string)
 
 type Config struct {
 	APIKey              string
@@ -14,7 +14,7 @@ type Config struct {
 	FlushMaxRetries     int
 	Logger              *log.Logger
 	MinIDLength         int
-	Callback            Callback
+	Callback            EventCallback
 	ServerZone          ServerZone
 	UseBatch            bool
 	StorageProvider     StorageProvider
