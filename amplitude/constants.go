@@ -39,12 +39,12 @@ const (
 	MaxPropertyKeys = 1024
 	MaxStringLength = 1024
 
-	DefaultFlushQueueSize      = 200
-	DefaultFlushIntervalMillis = 10000
-	DefaultFlushMaxRetries     = 12
-	DefaultMinIDLength         = 5
-	ConnectionTimeout          = 10.0
-	MaxBufferCapacity          = 20000
+	DefaultFlushQueueSize  = 200
+	DefaultFlushInterval   = 10000
+	DefaultFlushMaxRetries = 12
+	DefaultMinIDLength     = 5
+	ConnectionTimeout      = 10.0
+	MaxBufferCapacity      = 20000
 
 	BEFORE PluginType = iota
 	ENRICHMENT

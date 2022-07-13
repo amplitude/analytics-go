@@ -1,26 +1,25 @@
 package amplitude
 
 import (
-	log "github.com/sirupsen/logrus"
 	"time"
 )
 
 type EventCallback = func(event BaseEvent, code int, message ...string)
 
 type Config struct {
-	APIKey              string
-	FlushIntervalMillis time.Duration
-	FlushQueueSize      int
-	FlushMaxRetries     int
-	Logger              *log.Logger
-	MinIDLength         int
-	Callback            EventCallback
-	ServerZone          ServerZone
-	UseBatch            bool
-	StorageProvider     StorageProvider
-	OptOut              bool
-	Plan                Plan
-	ServerURL           string
+	APIKey          string
+	FlushInterval   time.Duration
+	FlushQueueSize  int
+	FlushMaxRetries int
+	Logger          Logger
+	MinIDLength     int
+	Callback        EventCallback
+	ServerZone      ServerZone
+	UseBatch        bool
+	StorageProvider StorageProvider
+	OptOut          bool
+	Plan            Plan
+	ServerURL       string
 }
 
 func getStorage(c *Config) Storage {
@@ -28,7 +27,7 @@ func getStorage(c *Config) Storage {
 }
 
 func (c Config) IsValid() bool {
-	if c.APIKey == "" || c.FlushQueueSize <= 0 || c.FlushIntervalMillis <= 0 || !c.IsMinIDLengthValid() {
+	if c.APIKey == "" || c.FlushQueueSize <= 0 || c.FlushInterval <= 0 || !c.IsMinIDLengthValid() {
 		return false
 	}
 	return true
