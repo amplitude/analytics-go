@@ -1,7 +1,7 @@
 package amplitude
 
 import (
-	"log"
+	log "github.com/sirupsen/logrus"
 	"time"
 )
 
@@ -12,10 +12,10 @@ type Config struct {
 	FlushIntervalMillis time.Duration
 	FlushQueueSize      int
 	FlushMaxRetries     int
-	Logger              log.Logger
+	Logger              *log.Logger
 	MinIDLength         int
 	Callback            Callback
-	ServerZone          string
+	ServerZone          ServerZone
 	UseBatch            bool
 	StorageProvider     StorageProvider
 	OptOut              bool

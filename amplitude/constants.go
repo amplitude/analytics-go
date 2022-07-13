@@ -2,14 +2,16 @@ package amplitude
 
 type PluginType int
 
+type ServerZone string
+
 const (
 	SdkLibrary = "amplitude-go"
 	SdkVersion = "0.0.0"
 
-	EUZone      = "EU"
-	DefaultZone = "US"
-	Batch       = "batch"
-	HTTPV2      = "v2"
+	ServerZoneEU = "EU"
+	ServerZoneUS = "US"
+	Batch        = "batch"
+	HTTPV2       = "v2"
 
 	LoggerName                = "amplitude"
 	DefaultGroupIdentifyEvent = "$groupidentify"
