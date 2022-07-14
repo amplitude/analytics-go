@@ -23,6 +23,7 @@ type Config struct {
 }
 
 func getStorage(c *Config) Storage {
+
 	return c.StorageProvider.GetStorage()
 }
 
@@ -30,6 +31,7 @@ func (c Config) IsValid() bool {
 	if c.APIKey == "" || c.FlushQueueSize <= 0 || c.FlushInterval <= 0 || !c.IsMinIDLengthValid() {
 		return false
 	}
+
 	return true
 }
 
