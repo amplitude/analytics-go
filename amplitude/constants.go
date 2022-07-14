@@ -1,5 +1,7 @@
 package amplitude
 
+import "time"
+
 type PluginType int
 
 type ServerZone string
@@ -40,7 +42,7 @@ const (
 	MaxStringLength = 1024
 
 	DefaultFlushQueueSize  = 200
-	DefaultFlushInterval   = 10 * 1000 * 1000 * 1000
+	DefaultFlushInterval   = time.Second * 10
 	DefaultFlushMaxRetries = 12
 	DefaultMinIDLength     = 5
 	ConnectionTimeout      = 10.0
