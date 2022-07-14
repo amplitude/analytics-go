@@ -14,7 +14,7 @@ type Amplitude interface {
 	Shutdown()
 }
 
-func NewAmplitude(config Config) *amplitude {
+func NewAmplitude(config Config) Amplitude {
 	return &amplitude{configuration: config}
 }
 
