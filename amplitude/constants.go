@@ -1,5 +1,7 @@
 package amplitude
 
+import "time"
+
 type PluginType int
 
 type ServerZone string
@@ -39,12 +41,12 @@ const (
 	MaxPropertyKeys = 1024
 	MaxStringLength = 1024
 
-	DefaultFlushQueueSize      = 200
-	DefaultFlushIntervalMillis = 10000
-	DefaultFlushMaxRetries     = 12
-	DefaultMinIDLength         = 5
-	ConnectionTimeout          = 10.0
-	MaxBufferCapacity          = 20000
+	DefaultFlushQueueSize  = 200
+	DefaultFlushInterval   = time.Second * 10
+	DefaultFlushMaxRetries = 12
+	DefaultMinIDLength     = 5
+	ConnectionTimeout      = 10.0
+	MaxBufferCapacity      = 20000
 
 	BEFORE PluginType = iota
 	ENRICHMENT
