@@ -6,6 +6,8 @@ type PluginType int
 
 type ServerZone string
 
+type IdentityOp string
+
 const (
 	SdkLibrary = "amplitude-go"
 	SdkVersion = "0.0.0"
