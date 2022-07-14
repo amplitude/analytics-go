@@ -3,7 +3,7 @@ package amplitude
 type Plugin struct {
 }
 
-func (p Plugin) Setup(client *Amplitude) {
+func (p Plugin) Setup(client *amplitude) {
 
 }
 
