@@ -6,7 +6,7 @@ type BaseEvent struct {
 	EventOptions
 	EventProperties map[string]interface{}
 	UserProperties  map[string]interface{}
-	Groups          map[string]string
+	Groups          map[string][]string
 	GroupProperties map[string]interface{}
 }
 
