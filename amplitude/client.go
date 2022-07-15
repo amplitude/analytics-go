@@ -1,35 +1,35 @@
 package amplitude
 
-type Amplitude interface {
+type Client interface {
 	Track(event BaseEvent)
 	Identify(identifyObj Identify, eventOptions EventOptions, eventProperties map[string]interface{})
-	GroupIdentify(groupType string, groupName string, identifyObj Identify,
-		eventOptions EventOptions, eventProperties map[string]interface{}, userProperties map[string]interface{},
+	GroupIdentify(groupType, groupName string, identify Identify,
+		eventOptions EventOptions, eventProperties, userProperties map[string]interface{},
 	)
-	Revenue(revenueObj Revenue, eventOptions EventOptions)
+	Revenue(revenue Revenue, eventOptions EventOptions)
 	SetGroup(groupType string, groupName string, eventOptions EventOptions)
 	Flush()
-	Add(plugin Plugin) *amplitude
-	Remove(plugin Plugin) *amplitude
+	Add(plugin Plugin)
+	Remove(plugin Plugin)
 	Shutdown()
 }
 
-func NewAmplitude(config Config) Amplitude {
-	return &amplitude{configuration: config}
+func NewClient(config Config) Client {
+	return &client{configuration: config}
 }
 
-type amplitude struct {
+type client struct {
 	configuration Config
 	timeline      Timeline
 }
 
 // Track processes and sends the given event object.
-func (a amplitude) Track(event BaseEvent) {
+func (a *client) Track(event BaseEvent) {
 	a.timeline.Process(event)
 }
 
 // Identify sends an identify event to update user Properties.
-func (a amplitude) Identify(identifyObj Identify, eventOptions EventOptions, eventProperties map[string]interface{}) {
+func (a *client) Identify(identifyObj Identify, eventOptions EventOptions, eventProperties map[string]interface{}) {
 	if !identifyObj.IsValid() {
 		a.configuration.Logger.Error("Empty Identify Properties")
 	} else {
@@ -46,8 +46,8 @@ func (a amplitude) Identify(identifyObj Identify, eventOptions EventOptions, eve
 }
 
 // GroupIdentify sends a group identify event to update group Properties.
-func (a amplitude) GroupIdentify(groupType string, groupName string, identifyObj Identify,
-	eventOptions EventOptions, eventProperties map[string]interface{}, userProperties map[string]interface{},
+func (a *client) GroupIdentify(groupType, groupName string, identifyObj Identify,
+	eventOptions EventOptions, eventProperties, userProperties map[string]interface{},
 ) {
 	if !identifyObj.IsValid() {
 		a.configuration.Logger.Error("Empty group identify Properties")
@@ -67,11 +67,11 @@ func (a amplitude) GroupIdentify(groupType string, groupName string, identifyObj
 }
 
 // Revenue sends a revenue event with revenue info in eventProperties.
-func (a amplitude) Revenue(revenueObj Revenue, eventOptions EventOptions) {
-	if !revenueObj.IsValid() {
+func (a *client) Revenue(revenue Revenue, eventOptions EventOptions) {
+	if !revenue.IsValid() {
 		a.configuration.Logger.Error("Invalid revenue quantity")
 	} else {
-		revenueEvent := revenueObj.ToRevenueEvent()
+		revenueEvent := revenue.ToRevenueEvent()
 		revenueEvent.loadEventOptions(eventOptions)
 		a.Track(revenueEvent.BaseEvent)
 	}
@@ -79,36 +79,32 @@ func (a amplitude) Revenue(revenueObj Revenue, eventOptions EventOptions) {
 
 // SetGroup sends an identify event to put a user in group(s)
 // by setting group type and group name as user property for a user.
-func (a amplitude) SetGroup(groupType string, groupName string, eventOptions EventOptions) {
+func (a *client) SetGroup(groupType string, groupName string, eventOptions EventOptions) {
 	identifyObj := Identify{}
 	identifyObj.Set(groupType, groupName)
 	a.Identify(identifyObj, eventOptions, map[string]interface{}{})
 }
 
 // Flush flushes all events waiting to be sent in the buffer.
-func (a amplitude) Flush() {
+func (a *client) Flush() {
 	a.timeline.Flush()
 }
 
 // Add adds the plugin object to client instance.
 // Events tracked bby this client instance will be processed by instances' plugins.
-func (a *amplitude) Add(plugin Plugin) *amplitude {
+func (a *client) Add(plugin Plugin) {
 	a.timeline.Add(plugin)
 	plugin.Setup(a)
-
-	return a
 }
 
 // Remove removes the plugin object from client instance.
-func (a *amplitude) Remove(plugin Plugin) *amplitude {
+func (a *client) Remove(plugin Plugin) {
 	a.timeline.Remove(plugin)
-
-	return a
 }
 
 // Shutdown shuts the client instance down from accepting new events
 // flushes all events in the buffer.
-func (a *amplitude) Shutdown() {
+func (a *client) Shutdown() {
 	a.configuration.OptOut = false
 	a.timeline.Shutdown()
 }
