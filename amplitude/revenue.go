@@ -10,8 +10,12 @@ func (r Revenue) IsValid() bool {
 	return r.Quantity > 0
 }
 
-func (r Revenue) ToRevenueEvent() RevenueEvent {
-	return RevenueEvent{BaseEvent{EventProperties: r.GetEventProperties()}}
+func (r Revenue) ToRevenueEvent(eventOptions EventOptions) Event {
+	return Event{
+		EventType:       "$revenue",
+		EventOptions:    eventOptions,
+		EventProperties: r.GetEventProperties(),
+	}
 }
 
 func (r Revenue) GetEventProperties() map[string]interface{} {

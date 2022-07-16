@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type EventCallback = func(event BaseEvent, code int, message ...string)
+type EventCallback = func(event Event, code int, message ...string)
 
 type Config struct {
 	APIKey          string

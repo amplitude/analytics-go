@@ -1,7 +1,7 @@
 package amplitude
 
 type Client interface {
-	Track(event BaseEvent)
+	Track(event Event)
 	Identify(identify Identify, eventOptions EventOptions, eventProperties map[string]interface{})
 	GroupIdentify(groupType string, groupName []string, identify Identify,
 		eventOptions EventOptions, eventProperties, userProperties map[string]interface{},
@@ -24,7 +24,7 @@ type client struct {
 }
 
 // Track processes and sends the given event object.
-func (a *client) Track(event BaseEvent) {
+func (a *client) Track(event Event) {
 	a.timeline.Process(event)
 }
 
@@ -33,15 +33,14 @@ func (a *client) Identify(identify Identify, eventOptions EventOptions, eventPro
 	if !identify.IsValid() {
 		a.configuration.Logger.Error("Empty Identify Properties")
 	} else {
-		identifyEvent := IdentifyEvent{
-			BaseEvent{
-				EventProperties: eventProperties,
-				UserProperties:  identify.Properties,
-			},
+		identifyEvent := Event{
+			EventType:       "$identify",
+			EventOptions:    eventOptions,
+			EventProperties: eventProperties,
+			UserProperties:  identify.Properties,
 		}
 
-		identifyEvent.loadEventOptions(eventOptions)
-		a.Track(identifyEvent.BaseEvent)
+		a.Track(identifyEvent)
 	}
 }
 
@@ -52,17 +51,16 @@ func (a *client) GroupIdentify(groupType string, groupName []string, identify Id
 	if !identify.IsValid() {
 		a.configuration.Logger.Error("Empty group identify Properties")
 	} else {
-		groupIdentifyEvent := GroupIdentifyEvent{
-			BaseEvent{
-				EventProperties: eventProperties,
-				UserProperties:  userProperties,
-				Groups:          map[string][]string{groupType: groupName},
-				GroupProperties: identify.Properties,
-			},
+		groupIdentifyEvent := Event{
+			EventType:       "$groupidentify",
+			EventOptions:    eventOptions,
+			EventProperties: eventProperties,
+			UserProperties:  userProperties,
+			Groups:          map[string][]string{groupType: groupName},
+			GroupProperties: identify.Properties,
 		}
 
-		groupIdentifyEvent.loadEventOptions(eventOptions)
-		a.Track(groupIdentifyEvent.BaseEvent)
+		a.Track(groupIdentifyEvent)
 	}
 }
 
@@ -71,9 +69,8 @@ func (a *client) Revenue(revenue Revenue, eventOptions EventOptions) {
 	if !revenue.IsValid() {
 		a.configuration.Logger.Error("Invalid revenue quantity")
 	} else {
-		revenueEvent := revenue.ToRevenueEvent()
-		revenueEvent.loadEventOptions(eventOptions)
-		a.Track(revenueEvent.BaseEvent)
+		revenueEvent := revenue.ToRevenueEvent(eventOptions)
+		a.Track(revenueEvent)
 	}
 }
 

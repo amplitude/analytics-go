@@ -3,7 +3,7 @@ package amplitude
 type Timeline struct {
 }
 
-func (t Timeline) Process(event BaseEvent) {
+func (t Timeline) Process(event Event) {
 
 }
 

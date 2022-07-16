@@ -21,7 +21,7 @@ func main() {
 	client := amplitude.NewClient(config)
 
 	// Create a BaseEvent instance
-	event := amplitude.BaseEvent{}
+	event := amplitude.Event{}
 
 	// Track an event
 	client.Track(event)
