@@ -34,7 +34,7 @@ func (a *client) Identify(identify Identify, eventOptions EventOptions, eventPro
 		a.configuration.Logger.Error("Empty Identify Properties")
 	} else {
 		identifyEvent := Event{
-			EventType:       "$identify",
+			EventType:       IdentifyEventEventType,
 			EventOptions:    eventOptions,
 			EventProperties: eventProperties,
 			UserProperties:  identify.Properties,
@@ -52,7 +52,7 @@ func (a *client) GroupIdentify(groupType string, groupName []string, identify Id
 		a.configuration.Logger.Error("Empty group identify Properties")
 	} else {
 		groupIdentifyEvent := Event{
-			EventType:       "$groupidentify",
+			EventType:       GroupIdentifyEventEventType,
 			EventOptions:    eventOptions,
 			EventProperties: eventProperties,
 			UserProperties:  userProperties,

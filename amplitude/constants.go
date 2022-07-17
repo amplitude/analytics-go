@@ -17,19 +17,23 @@ const (
 	Batch        = "batch"
 	HTTPV2       = "v2"
 
-	LoggerName                = "amplitude"
-	DefaultGroupIdentifyEvent = "$groupidentify"
-	IdentityOpAdd             = "$add"
-	IdentityOpAppend          = "$append"
-	IdentityOpClearAll        = "$clearAll"
-	IdentityOpPrepend         = "$prepend"
-	IdentityOpSet             = "$set"
-	IdentityOpSetOnce         = "$setOnce"
-	IdentityOpUnset           = "$unset"
-	IdentityOpPreInsert       = "$preInsert"
-	IdentityOpPostInsert      = "$postInsert"
-	IdentityOpRemove          = "$remove"
-	UnsetValue                = "-"
+	LoggerName = "amplitude"
+
+	IdentifyEventEventType      = "$identify"
+	GroupIdentifyEventEventType = "$groupidentify"
+	RevenueEventEventType       = "revenue_amount"
+
+	IdentityOpAdd        = "$add"
+	IdentityOpAppend     = "$append"
+	IdentityOpClearAll   = "$clearAll"
+	IdentityOpPrepend    = "$prepend"
+	IdentityOpSet        = "$set"
+	IdentityOpSetOnce    = "$setOnce"
+	IdentityOpUnset      = "$unset"
+	IdentityOpPreInsert  = "$preInsert"
+	IdentityOpPostInsert = "$postInsert"
+	IdentityOpRemove     = "$remove"
+	UnsetValue           = "-"
 
 	RevenueProductID  = "$productId"
 	RevenueQuantity   = "$quantity"
@@ -38,7 +42,6 @@ const (
 	RevenueReceipt    = "$receipt"
 	RevenueReceiptSig = "$receiptSig"
 	DefaultRevenue    = "$revenue"
-	AmpRevenueEvent   = "revenue_amount"
 
 	MaxPropertyKeys = 1024
 	MaxStringLength = 1024
