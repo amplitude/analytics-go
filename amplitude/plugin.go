@@ -1,24 +1,29 @@
 package amplitude
 
-type Plugin struct {
+type Plugin interface {
+	Setup(client *client)
+	Execute(event Event) Event
+	flush()
+	shutdown()
 }
 
-func (p Plugin) Setup(client *client) {
+// BasePlugin is the base class of all plugins.
+type BasePlugin struct {
+	pluginType PluginType
+}
+
+func (p *BasePlugin) Setup(client *client) {
 
 }
 
-type EventPlugin struct {
-	Plugin
+func (p *BasePlugin) Execute(event Event) Event {
+	return Event{}
 }
 
-type DestinationPlugin struct {
-	EventPlugin
+func (p *BasePlugin) flush() {
+
 }
 
-type AmplitudeDestinationPlugin struct {
-	DestinationPlugin
-}
+func (p *BasePlugin) shutdown() {
 
-type ContextPlugin struct {
-	Plugin
 }
