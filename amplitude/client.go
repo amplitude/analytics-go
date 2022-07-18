@@ -20,12 +20,12 @@ func NewClient(config Config) Client {
 
 type client struct {
 	configuration Config
-	timeline      Timeline
+	timeline      timeline
 }
 
 // Track processes and sends the given event object.
 func (a *client) Track(event Event) {
-	a.timeline.Process(event)
+	a.timeline.process(event)
 }
 
 // Identify sends an identify event to update user Properties.
@@ -84,24 +84,24 @@ func (a *client) SetGroup(groupType string, groupName []string, eventOptions Eve
 
 // Flush flushes all events waiting to be sent in the buffer.
 func (a *client) Flush() {
-	a.timeline.Flush()
+	a.timeline.flush()
 }
 
 // Add adds the plugin object to client instance.
 // Events tracked bby this client instance will be processed by instances' plugins.
 func (a *client) Add(plugin Plugin) {
-	a.timeline.Add(plugin)
+	a.timeline.add(plugin)
 	plugin.Setup(a)
 }
 
 // Remove removes the plugin object from client instance.
 func (a *client) Remove(plugin Plugin) {
-	a.timeline.Remove(plugin)
+	a.timeline.remove(plugin)
 }
 
 // Shutdown shuts the client instance down from accepting new events
 // flushes all events in the buffer.
 func (a *client) Shutdown() {
 	a.configuration.OptOut = false
-	a.timeline.Shutdown()
+	a.timeline.shutdown()
 }
