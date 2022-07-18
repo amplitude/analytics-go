@@ -19,9 +19,9 @@ const (
 
 	LoggerName = "amplitude"
 
-	IdentifyEventEventType      = "$identify"
-	GroupIdentifyEventEventType = "$groupidentify"
-	RevenueEventEventType       = "revenue_amount"
+	IdentifyEventType      = "$identify"
+	GroupIdentifyEventType = "$groupidentify"
+	RevenueEventType       = "revenue_amount"
 
 	IdentityOpAdd        = "$add"
 	IdentityOpAppend     = "$append"

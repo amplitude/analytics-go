@@ -12,7 +12,7 @@ func (r Revenue) IsValid() bool {
 
 func (r Revenue) ToRevenueEvent(eventOptions EventOptions) Event {
 	return Event{
-		EventType:       RevenueEventEventType,
+		EventType:       RevenueEventType,
 		EventOptions:    eventOptions,
 		EventProperties: r.GetEventProperties(),
 	}
