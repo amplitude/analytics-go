@@ -19,7 +19,7 @@ type InMemoryStorage struct {
 func (i *InMemoryStorage) setup(configuration Config, workers Worker) {
 }
 
-func (i InMemoryStorage) push(event BaseEvent, delay int) {
+func (i InMemoryStorage) push(event Event, delay int) {
 
 }
 
@@ -31,7 +31,7 @@ func (i InMemoryStorage) pullAll() {
 
 }
 
-func (i InMemoryStorage) insertEvent(totalDelay int, event BaseEvent) {
+func (i InMemoryStorage) insertEvent(totalDelay int, event Event) {
 
 }
 

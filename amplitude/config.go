@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-type EventCallback = func(event BaseEvent, code int, message ...string)
+type EventCallback = func(event Event, code int, message ...string)
 
 type Config struct {
 	APIKey          string
@@ -23,6 +23,7 @@ type Config struct {
 }
 
 func getStorage(c *Config) Storage {
+
 	return c.StorageProvider.GetStorage()
 }
 
@@ -30,6 +31,7 @@ func (c Config) IsValid() bool {
 	if c.APIKey == "" || c.FlushQueueSize <= 0 || c.FlushInterval <= 0 || !c.IsMinIDLengthValid() {
 		return false
 	}
+
 	return true
 }
 

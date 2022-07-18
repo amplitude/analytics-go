@@ -1,37 +1,12 @@
 package amplitude
 
-type Plan struct {
-	branch    string
-	source    string
-	version   string
-	versionID string
-}
+type EventOptions struct{}
 
-func (p *Plan) getPlanBody() {
-
-}
-
-type EventOptions struct {
-}
-
-type BaseEvent struct {
+type Event struct {
+	EventType string
 	EventOptions
-}
-
-type Identity struct {
-}
-
-type GroupIdentifyEvent struct {
-	BaseEvent
-}
-
-type IdentifyEvent struct {
-	BaseEvent
-}
-
-type Revenue struct {
-}
-
-type RevenueEvent struct {
-	Revenue
+	EventProperties map[string]interface{}
+	UserProperties  map[string]interface{}
+	Groups          map[string][]string
+	GroupProperties map[string]interface{}
 }

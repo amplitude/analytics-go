@@ -3,6 +3,10 @@ package amplitude
 type Plugin struct {
 }
 
+func (p Plugin) Setup(client *client) {
+
+}
+
 type EventPlugin struct {
 	Plugin
 }

@@ -18,10 +18,10 @@ func main() {
 	config := amplitude.Config{APIKey: "your_api_key"}
 
 	// Config callback function (optional)
-	client := amplitude.Amplitude{Configuration: config}
+	client := amplitude.NewClient(config)
 
 	// Create a BaseEvent instance
-	event := amplitude.BaseEvent{}
+	event := amplitude.Event{}
 
 	// Track an event
 	client.Track(event)
