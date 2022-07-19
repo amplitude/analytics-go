@@ -48,7 +48,7 @@ func (t *timeline) remove(plugin Plugin) {
 	for pluginsType, plugins := range t.plugins {
 		for i, p := range plugins {
 			if p == plugin {
-				t.plugins[pluginsType] = append(t.plugins[pluginsType][:i], t.plugins[pluginsType][i+1])
+				t.plugins[pluginsType] = append(t.plugins[pluginsType][:i], t.plugins[pluginsType][i+1:]...)
 			}
 		}
 	}
