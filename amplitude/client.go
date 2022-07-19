@@ -102,6 +102,6 @@ func (a *client) Remove(plugin BasePlugin) {
 // Shutdown shuts the client instance down from accepting new events
 // flushes all events in the buffer.
 func (a *client) Shutdown() {
-	a.configuration.OptOut = false
+	a.configuration.OptOut = true
 	a.timeline.shutdown()
 }
