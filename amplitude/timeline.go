@@ -29,11 +29,7 @@ func (t *timeline) applyPlugins(pluginType PluginType, event Event) Event {
 	result := event
 
 	for _, plugin := range t.plugins[pluginType] {
-		if pluginType == DESTINATION {
-			plugin.Execute(result)
-		} else {
-			result = plugin.Execute(result)
-		}
+		result = plugin.Execute(result)
 	}
 
 	return result
