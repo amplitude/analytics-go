@@ -6,11 +6,6 @@ type timeline struct {
 	plugins       map[PluginType][]Plugin
 }
 
-// setup sets timeline using the configuration as client
-func (t *timeline) setup(client *client) {
-	t.configuration = client.configuration
-}
-
 func (t *timeline) process(event Event) Event {
 	if t.configuration.OptOut {
 		t.logger.Info("Skipped event for opt out config")
