@@ -20,7 +20,7 @@ func main() {
 	// Config callback function (optional)
 	client := amplitude.NewClient(config)
 
-	client.AddPlugin(amplitude.NewContextPlugin())
+	client.Add(amplitude.NewContextPlugin())
 
 	// Create a BaseEvent instance
 	event := amplitude.Event{}

@@ -9,8 +9,8 @@ type Client interface {
 	Revenue(revenue Revenue, eventOptions EventOptions)
 	SetGroup(groupType string, groupName []string, eventOptions EventOptions)
 	Flush()
-	AddPlugin(plugin Plugin)
-	RemovePlugin(plugin Plugin)
+	Add(plugin Plugin)
+	Remove(plugin Plugin)
 	Shutdown()
 }
 
@@ -89,13 +89,13 @@ func (a *client) Flush() {
 
 // Add adds the plugin object to client instance.
 // Events tracked bby this client instance will be processed by instances' plugins.
-func (a *client) AddPlugin(plugin Plugin) {
+func (a *client) Add(plugin Plugin) {
 	a.timeline.add(plugin)
 	plugin.Setup(a.configuration)
 }
 
 // Remove removes the plugin object from client instance.
-func (a *client) RemovePlugin(plugin Plugin) {
+func (a *client) Remove(plugin Plugin) {
 	a.timeline.remove(plugin)
 }
 

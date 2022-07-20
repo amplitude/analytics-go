@@ -11,7 +11,7 @@ type Plugin interface {
 	Setup(config Config)
 }
 
-type MiddlewarePlugin interface {
+type EnrichmentPlugin interface {
 	Plugin
 	Priority() MiddlewarePriority
 	Execute(event *Event) *Event

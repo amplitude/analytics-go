@@ -3,7 +3,7 @@ package amplitude
 type timeline struct {
 	configuration      Config
 	logger             Logger
-	middlewarePlugins  []MiddlewarePlugin
+	middlewarePlugins  []EnrichmentPlugin
 	destinationPlugins []DestinationPlugin
 }
 
@@ -48,7 +48,7 @@ func (t *timeline) add(plugin Plugin) {
 	//	TO-DO stop current thread
 
 	switch plugin := plugin.(type) {
-	case MiddlewarePlugin:
+	case EnrichmentPlugin:
 		t.middlewarePlugins = append(t.middlewarePlugins, plugin)
 	case DestinationPlugin:
 		t.destinationPlugins = append(t.destinationPlugins, plugin)
@@ -59,7 +59,7 @@ func (t *timeline) add(plugin Plugin) {
 
 func (t *timeline) remove(plugin Plugin) {
 	switch plugin := plugin.(type) {
-	case MiddlewarePlugin:
+	case EnrichmentPlugin:
 		for i, p := range t.middlewarePlugins {
 			if p == plugin {
 				t.middlewarePlugins = append(t.middlewarePlugins[:i], t.middlewarePlugins[i+1:]...)
