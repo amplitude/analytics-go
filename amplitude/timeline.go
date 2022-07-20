@@ -1,58 +1,89 @@
 package amplitude
 
 type timeline struct {
-	configuration Config
-	logger        Logger
-	plugins       map[PluginType][]Plugin
+	configuration      Config
+	logger             Logger
+	middlewarePlugins  []EnrichmentPlugin
+	destinationPlugins []DestinationPlugin
 }
 
-func (t *timeline) process(event Event) Event {
+func (t *timeline) process(event *Event) {
 	if t.configuration.OptOut {
 		t.logger.Info("Skipped event for opt out config")
 
-		return event
+		return
 	}
 
-	beforeResult := t.applyPlugins(BEFORE, event)
-	enrichResult := t.applyPlugins(ENRICHMENT, beforeResult)
-	t.applyPlugins(DESTINATION, enrichResult)
-
-	return enrichResult
+	event = t.applyMiddlewarePlugins(event)
+	if event != nil {
+		t.applyDestinationPlugins(event)
+	}
 }
 
-func (t *timeline) applyPlugins(pluginType PluginType, event Event) Event {
+func (t *timeline) applyMiddlewarePlugins(event *Event) *Event {
 	result := event
 
-	for _, plugin := range t.plugins[pluginType] {
-		result = plugin.Execute(result)
+	for priority := MiddlewarePriorityBefore; priority <= MiddlewarePriorityEnrichment; priority++ {
+		for _, plugin := range t.middlewarePlugins {
+			if plugin.Priority() == priority {
+				result = plugin.Execute(result)
+				if result == nil {
+					return nil
+				}
+			}
+		}
 	}
 
 	return result
 }
 
-func (t *timeline) add(pluginType PluginType, plugin Plugin) {
+func (t *timeline) applyDestinationPlugins(event *Event) {
+	for _, plugin := range t.destinationPlugins {
+		clone := event.Clone()
+		plugin.Execute(&clone)
+	}
+}
+
+func (t *timeline) add(plugin Plugin) {
 	//	TO-DO stop current thread
-	t.plugins[pluginType] = append(t.plugins[pluginType], plugin)
+
+	switch plugin := plugin.(type) {
+	case EnrichmentPlugin:
+		t.middlewarePlugins = append(t.middlewarePlugins, plugin)
+	case DestinationPlugin:
+		t.destinationPlugins = append(t.destinationPlugins, plugin)
+	default:
+		panic("unknown plugin type")
+	}
 }
 
 func (t *timeline) remove(plugin Plugin) {
-	for pluginsType, plugins := range t.plugins {
-		for i, p := range plugins {
+	switch plugin := plugin.(type) {
+	case EnrichmentPlugin:
+		for i, p := range t.middlewarePlugins {
 			if p == plugin {
-				t.plugins[pluginsType] = append(t.plugins[pluginsType][:i], t.plugins[pluginsType][i+1:]...)
+				t.middlewarePlugins = append(t.middlewarePlugins[:i], t.middlewarePlugins[i+1:]...)
 			}
 		}
+	case DestinationPlugin:
+		for i, p := range t.destinationPlugins {
+			if p == plugin {
+				t.destinationPlugins = append(t.destinationPlugins[:i], t.destinationPlugins[i+1:]...)
+			}
+		}
+	default:
+		panic("unknown plugin type")
 	}
 }
 
 func (t *timeline) flush() {
-	for _, destinationPlugin := range t.plugins[DESTINATION] {
-		destinationPlugin.flush()
+	for _, plugin := range t.destinationPlugins {
+		plugin.Flush()
 	}
 }
 
 func (t *timeline) shutdown() {
-	for _, destinationPlugin := range t.plugins[DESTINATION] {
-		destinationPlugin.shutdown()
+	for _, plugin := range t.destinationPlugins {
+		plugin.Shutdown()
 	}
 }

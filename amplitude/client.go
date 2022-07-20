@@ -9,8 +9,8 @@ type Client interface {
 	Revenue(revenue Revenue, eventOptions EventOptions)
 	SetGroup(groupType string, groupName []string, eventOptions EventOptions)
 	Flush()
-	Add(plugin BasePlugin)
-	Remove(plugin BasePlugin)
+	Add(plugin Plugin)
+	Remove(plugin Plugin)
 	Shutdown()
 }
 
@@ -25,7 +25,7 @@ type client struct {
 
 // Track processes and sends the given event object.
 func (a *client) Track(event Event) {
-	a.timeline.process(event)
+	a.timeline.process(&event)
 }
 
 // Identify sends an identify event to update user Properties.
@@ -89,14 +89,14 @@ func (a *client) Flush() {
 
 // Add adds the plugin object to client instance.
 // Events tracked bby this client instance will be processed by instances' plugins.
-func (a *client) Add(plugin BasePlugin) {
-	a.timeline.add(plugin.pluginType, &plugin)
-	plugin.Setup(a)
+func (a *client) Add(plugin Plugin) {
+	a.timeline.add(plugin)
+	plugin.Setup(a.configuration)
 }
 
 // Remove removes the plugin object from client instance.
-func (a *client) Remove(plugin BasePlugin) {
-	a.timeline.remove(&plugin)
+func (a *client) Remove(plugin Plugin) {
+	a.timeline.remove(plugin)
 }
 
 // Shutdown shuts the client instance down from accepting new events
