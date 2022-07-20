@@ -1,6 +1,12 @@
 package amplitude
 
-type EventOptions struct{}
+import "time"
+
+type EventOptions struct {
+	time     time.Time
+	insertID string
+	library  string
+}
 
 type Event struct {
 	EventType string
