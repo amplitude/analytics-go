@@ -9,23 +9,25 @@ import (
 // ContextPlugin is the default plugin that add library info to event.
 // It also sets event default timestamp and insertID if not set elsewhere.
 type ContextPlugin struct {
-	BasePlugin
 	contextString string
 }
 
-func newContextPlugin() *ContextPlugin {
+func NewContextPlugin() *ContextPlugin {
 	return &ContextPlugin{
-		BasePlugin:    BasePlugin{pluginType: BEFORE},
 		contextString: SdkLibrary + "/" + SdkVersion,
 	}
 }
 
-func (c *ContextPlugin) Setup(client *client) {
+func (c *ContextPlugin) Setup(config Config) {
+}
+
+func (c *ContextPlugin) Priority() MiddlewarePriority {
+	return MiddlewarePriorityBefore
 }
 
 // Execute sets default timestamp and insertID if not set elsewhere
 // It also adds SDK name and version to event library.
-func (c *ContextPlugin) Execute(event Event) Event {
+func (c *ContextPlugin) Execute(event *Event) *Event {
 	if event.time.IsZero() {
 		event.time = time.Now()
 	}
@@ -37,10 +39,4 @@ func (c *ContextPlugin) Execute(event Event) Event {
 	event.library = c.contextString
 
 	return event
-}
-
-func (c *ContextPlugin) flush() {
-}
-
-func (c *ContextPlugin) shutdown() {
 }

@@ -1,29 +1,25 @@
 package amplitude
 
+type MiddlewarePriority byte
+
+const (
+	MiddlewarePriorityBefore MiddlewarePriority = iota
+	MiddlewarePriorityEnrichment
+)
+
 type Plugin interface {
-	Setup(client *client)
-	Execute(event Event) Event
-	flush()
-	shutdown()
+	Setup(config Config)
 }
 
-// BasePlugin is the base class of all plugins.
-type BasePlugin struct {
-	pluginType PluginType
+type MiddlewarePlugin interface {
+	Plugin
+	Priority() MiddlewarePriority
+	Execute(event *Event) *Event
 }
 
-func (p *BasePlugin) Setup(client *client) {
-
-}
-
-func (p *BasePlugin) Execute(event Event) Event {
-	return Event{}
-}
-
-func (p *BasePlugin) flush() {
-
-}
-
-func (p *BasePlugin) shutdown() {
-
+type DestinationPlugin interface {
+	Plugin
+	Execute(event *Event)
+	Flush()
+	Shutdown()
 }
