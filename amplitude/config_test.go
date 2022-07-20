@@ -2,45 +2,31 @@ package amplitude
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestConfigIsValid(t *testing.T) {
 	c := Config{}
-
-	if c.IsValid() {
-		t.Errorf("Expected: false, , but got %t", c.IsValid())
-	}
+	assert.False(t, c.IsValid())
 
 	c.APIKey = "test"
-	if c.IsValid() {
-		t.Errorf("Expected: false, , but got %t", c.IsValid())
-	}
+	assert.False(t, c.IsValid())
 
 	c.FlushQueueSize = DefaultFlushQueueSize
-	if c.IsValid() {
-		t.Errorf("Expected: false, , but got %t", c.IsValid())
-	}
+	assert.False(t, c.IsValid())
 
 	c.FlushInterval = DefaultFlushInterval
-	if c.IsValid() {
-		t.Errorf("Expected: false, , but got %t", c.IsValid())
-	}
+	assert.False(t, c.IsValid())
 
 	c.MinIDLength = DefaultMinIDLength
-	if !c.IsValid() {
-		t.Errorf("Expected: true, , but got %t", c.IsValid())
-	}
+	assert.True(t, c.IsValid())
 }
 
 func TestConfigIsMinIDLengthValid(t *testing.T) {
 	c := Config{}
-
-	if c.IsMinIDLengthValid() {
-		t.Errorf("Expected: false, , but got %t", c.IsMinIDLengthValid())
-	}
+	assert.False(t, c.IsMinIDLengthValid())
 
 	c.MinIDLength = DefaultMinIDLength
-	if !c.IsMinIDLengthValid() {
-		t.Errorf("Expected: true, , but got %t", c.IsMinIDLengthValid())
-	}
+	assert.True(t, c.IsMinIDLengthValid())
 }
