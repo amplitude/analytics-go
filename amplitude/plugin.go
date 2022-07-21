@@ -1,10 +1,10 @@
 package amplitude
 
-type MiddlewarePriority byte
+type EnrichmentPriority byte
 
 const (
-	MiddlewarePriorityBefore MiddlewarePriority = iota
-	MiddlewarePriorityEnrichment
+	EnrichmentPriorityBefore EnrichmentPriority = iota
+	EnrichmentPriorityEnrichment
 )
 
 type Plugin interface {
@@ -13,7 +13,7 @@ type Plugin interface {
 
 type EnrichmentPlugin interface {
 	Plugin
-	Priority() MiddlewarePriority
+	Priority() EnrichmentPriority
 	Execute(event *Event) *Event
 }
 

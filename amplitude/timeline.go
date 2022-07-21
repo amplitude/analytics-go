@@ -3,7 +3,7 @@ package amplitude
 type timeline struct {
 	configuration      Config
 	logger             Logger
-	middlewarePlugins  []EnrichmentPlugin
+	enrichmentPlugins  []EnrichmentPlugin
 	destinationPlugins []DestinationPlugin
 }
 
@@ -14,17 +14,17 @@ func (t *timeline) process(event *Event) {
 		return
 	}
 
-	event = t.applyMiddlewarePlugins(event)
+	event = t.applyEnrichmentPlugins(event)
 	if event != nil {
 		t.applyDestinationPlugins(event)
 	}
 }
 
-func (t *timeline) applyMiddlewarePlugins(event *Event) *Event {
+func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
 	result := event
 
-	for priority := MiddlewarePriorityBefore; priority <= MiddlewarePriorityEnrichment; priority++ {
-		for _, plugin := range t.middlewarePlugins {
+	for priority := EnrichmentPriorityBefore; priority <= EnrichmentPriorityEnrichment; priority++ {
+		for _, plugin := range t.enrichmentPlugins {
 			if plugin.Priority() == priority {
 				result = plugin.Execute(result)
 				if result == nil {
@@ -49,7 +49,7 @@ func (t *timeline) add(plugin Plugin) {
 
 	switch plugin := plugin.(type) {
 	case EnrichmentPlugin:
-		t.middlewarePlugins = append(t.middlewarePlugins, plugin)
+		t.enrichmentPlugins = append(t.enrichmentPlugins, plugin)
 	case DestinationPlugin:
 		t.destinationPlugins = append(t.destinationPlugins, plugin)
 	default:
@@ -60,9 +60,9 @@ func (t *timeline) add(plugin Plugin) {
 func (t *timeline) remove(plugin Plugin) {
 	switch plugin := plugin.(type) {
 	case EnrichmentPlugin:
-		for i, p := range t.middlewarePlugins {
+		for i, p := range t.enrichmentPlugins {
 			if p == plugin {
-				t.middlewarePlugins = append(t.middlewarePlugins[:i], t.middlewarePlugins[i+1:]...)
+				t.enrichmentPlugins = append(t.enrichmentPlugins[:i], t.enrichmentPlugins[i+1:]...)
 			}
 		}
 	case DestinationPlugin:

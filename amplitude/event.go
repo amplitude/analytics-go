@@ -1,6 +1,12 @@
 package amplitude
 
-type EventOptions struct{}
+import "time"
+
+type EventOptions struct {
+	time     time.Time
+	insertID string
+	library  string
+}
 
 type Event struct {
 	EventType string
@@ -28,6 +34,7 @@ func cloneProperties(properties map[string]interface{}) map[string]interface{} {
 	for k, v := range properties {
 		result[k] = v
 	}
+
 	return result
 }
 
@@ -37,5 +44,6 @@ func cloneGroups(properties map[string][]string) map[string][]string {
 	for k, v := range properties {
 		result[k] = v
 	}
+
 	return result
 }

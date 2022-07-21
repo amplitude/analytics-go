@@ -1,6 +1,10 @@
 package amplitude
 
-import "time"
+import (
+	"time"
+
+	"github.com/google/uuid"
+)
 
 // ContextPlugin is the default enrichment plugin that add library info to event.
 // It also sets event default timestamp and insertID if not set elsewhere.
@@ -17,8 +21,8 @@ func NewContextPlugin() *ContextPlugin {
 func (c *ContextPlugin) Setup(config Config) {
 }
 
-func (c *ContextPlugin) Priority() MiddlewarePriority {
-	return MiddlewarePriorityBefore
+func (c *ContextPlugin) Priority() EnrichmentPriority {
+	return EnrichmentPriorityBefore
 }
 
 // Execute sets default timestamp and insertID if not set elsewhere
