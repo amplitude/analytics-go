@@ -1,24 +1,25 @@
 package amplitude
 
-type Plugin struct {
+type EnrichmentPriority byte
+
+const (
+	EnrichmentPriorityBefore EnrichmentPriority = iota
+	EnrichmentPriorityEnrichment
+)
+
+type Plugin interface {
+	Setup(config Config)
 }
 
-func (p Plugin) Setup(client *client) {
-
-}
-
-type EventPlugin struct {
+type EnrichmentPlugin interface {
 	Plugin
+	Priority() EnrichmentPriority
+	Execute(event *Event) *Event
 }
 
-type DestinationPlugin struct {
-	EventPlugin
-}
-
-type AmplitudeDestinationPlugin struct {
-	DestinationPlugin
-}
-
-type ContextPlugin struct {
+type DestinationPlugin interface {
 	Plugin
+	Execute(event *Event)
+	Flush()
+	Shutdown()
 }
