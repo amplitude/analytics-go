@@ -7,26 +7,17 @@ import (
 )
 
 func TestConfigIsValid(t *testing.T) {
-	c := Config{}
-	assert.False(t, c.IsValid())
+	config := NewConfig("test-api-key")
+	assert.True(t, config.IsValid())
 
-	c.APIKey = "test"
-	assert.False(t, c.IsValid())
+	config = NewConfig("")
+	assert.False(t, config.IsValid())
 
-	c.FlushQueueSize = DefaultFlushQueueSize
-	assert.False(t, c.IsValid())
+	config = NewConfig("test-api-key")
+	config.FlushQueueSize = 0
+	assert.False(t, config.IsValid())
 
-	c.FlushInterval = DefaultFlushInterval
-	assert.False(t, c.IsValid())
-
-	c.MinIDLength = DefaultMinIDLength
-	assert.True(t, c.IsValid())
-}
-
-func TestConfigIsMinIDLengthValid(t *testing.T) {
-	c := Config{}
-	assert.False(t, c.IsMinIDLengthValid())
-
-	c.MinIDLength = DefaultMinIDLength
-	assert.True(t, c.IsMinIDLengthValid())
+	config = NewConfig("test-api-key")
+	config.MinIDLength = 0
+	assert.False(t, config.IsValid())
 }

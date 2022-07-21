@@ -22,8 +22,22 @@ type Config struct {
 	ServerURL       string
 }
 
-func getStorage(c *Config) Storage {
+func NewConfig(apiKey string) *Config {
+	return &Config{
+		APIKey:          apiKey,
+		FlushInterval:   DefaultFlushInterval,
+		FlushQueueSize:  DefaultFlushQueueSize,
+		FlushMaxRetries: DefaultFlushMaxRetries,
+		MinIDLength:     DefaultMinIDLength,
+		Callback:        nil,
+		ServerZone:      ServerZoneUS,
+		UseBatch:        false,
+		OptOut:          false,
+		ServerURL:       HTTPV2,
+	}
+}
 
+func getStorage(c *Config) Storage {
 	return c.StorageProvider.GetStorage()
 }
 

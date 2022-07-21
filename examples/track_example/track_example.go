@@ -15,7 +15,7 @@ func callbackFunc(e string, code int, message string) {
 
 func main() {
 
-	config := amplitude.Config{APIKey: "your_api_key"}
+	config := amplitude.NewConfig("your_api_key")
 
 	// Config callback function (optional)
 	client := amplitude.NewClient(config)
