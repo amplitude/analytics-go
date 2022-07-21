@@ -3,9 +3,9 @@ package amplitude
 import "time"
 
 type EventOptions struct {
-	time     time.Time
-	insertID string
-	library  string
+	Time     time.Time
+	InsertID string
+	Library  string
 }
 
 type Event struct {

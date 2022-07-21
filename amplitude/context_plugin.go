@@ -28,15 +28,15 @@ func (c *ContextPlugin) Priority() EnrichmentPriority {
 // Execute sets default timestamp and insertID if not set elsewhere
 // It also adds SDK name and version to event library.
 func (c *ContextPlugin) Execute(event *Event) *Event {
-	if event.time.IsZero() {
-		event.time = time.Now()
+	if event.Time.IsZero() {
+		event.Time = time.Now()
 	}
 
-	if event.insertID == "" {
-		event.insertID = uuid.NewString()
+	if event.InsertID == "" {
+		event.InsertID = uuid.NewString()
 	}
 
-	event.library = c.contextString
+	event.Library = c.contextString
 
 	return event
 }
