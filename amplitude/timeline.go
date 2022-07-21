@@ -1,24 +1,89 @@
 package amplitude
 
-type Timeline struct {
+type timeline struct {
+	configuration      Config
+	logger             Logger
+	enrichmentPlugins  []EnrichmentPlugin
+	destinationPlugins []DestinationPlugin
 }
 
-func (t Timeline) Process(event Event) {
+func (t *timeline) process(event *Event) {
+	if t.configuration.OptOut {
+		t.logger.Info("Skipped event for opt out config")
 
+		return
+	}
+
+	event = t.applyEnrichmentPlugins(event)
+	if event != nil {
+		t.applyDestinationPlugins(event)
+	}
 }
 
-func (t *Timeline) Add(plugin Plugin) {
+func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
+	result := event
 
+	for priority := EnrichmentPriorityBefore; priority <= EnrichmentPriorityEnrichment; priority++ {
+		for _, plugin := range t.enrichmentPlugins {
+			if plugin.Priority() == priority {
+				result = plugin.Execute(result)
+				if result == nil {
+					return nil
+				}
+			}
+		}
+	}
+
+	return result
 }
 
-func (t Timeline) Flush() {
-
+func (t *timeline) applyDestinationPlugins(event *Event) {
+	for _, plugin := range t.destinationPlugins {
+		clone := event.Clone()
+		plugin.Execute(&clone)
+	}
 }
 
-func (t *Timeline) Remove(plugin Plugin) {
+func (t *timeline) add(plugin Plugin) {
+	//	TO-DO stop current thread
 
+	switch plugin := plugin.(type) {
+	case EnrichmentPlugin:
+		t.enrichmentPlugins = append(t.enrichmentPlugins, plugin)
+	case DestinationPlugin:
+		t.destinationPlugins = append(t.destinationPlugins, plugin)
+	default:
+		panic("unknown plugin type")
+	}
 }
 
-func (t *Timeline) Shutdown() {
+func (t *timeline) remove(plugin Plugin) {
+	switch plugin := plugin.(type) {
+	case EnrichmentPlugin:
+		for i, p := range t.enrichmentPlugins {
+			if p == plugin {
+				t.enrichmentPlugins = append(t.enrichmentPlugins[:i], t.enrichmentPlugins[i+1:]...)
+			}
+		}
+	case DestinationPlugin:
+		for i, p := range t.destinationPlugins {
+			if p == plugin {
+				t.destinationPlugins = append(t.destinationPlugins[:i], t.destinationPlugins[i+1:]...)
+			}
+		}
+	default:
+		panic("unknown plugin type")
+	}
+}
 
+func (t *timeline) flush() {
+	for _, plugin := range t.destinationPlugins {
+		plugin.Flush()
+	}
+}
+
+func (t *timeline) shutdown() {
+	for _, plugin := range t.destinationPlugins {
+		plugin.Shutdown()
+	}
 }
