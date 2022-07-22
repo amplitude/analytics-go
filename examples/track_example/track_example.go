@@ -18,7 +18,7 @@ func main() {
 	config := amplitude.NewConfig("your_api_key")
 
 	// Config callback function (optional)
-	client := amplitude.NewClient(config)
+	client := amplitude.NewClient(&config)
 
 	client.Add(amplitude.NewContextPlugin())
 

@@ -22,8 +22,8 @@ type Config struct {
 	ServerURL       string
 }
 
-func NewConfig(apiKey string) *Config {
-	return &Config{
+func NewConfig(apiKey string) Config {
+	return Config{
 		APIKey:          apiKey,
 		FlushInterval:   DefaultFlushInterval,
 		FlushQueueSize:  DefaultFlushQueueSize,
