@@ -14,8 +14,8 @@ type Client interface {
 	Shutdown()
 }
 
-func NewClient(config *Config) Client {
-	return &client{configuration: *config}
+func NewClient(config Config) Client {
+	return &client{configuration: config}
 }
 
 type client struct {
