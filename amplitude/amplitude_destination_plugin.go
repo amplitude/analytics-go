@@ -25,17 +25,18 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 	if !isValidEvent(event) {
 		a.config.Logger.Error("Invalid event.")
 	}
+
 	a.config.StorageProvider.Push(event)
 }
 
 func (a *AmplitudeDestinationPlugin) Flush() {
 	events := a.config.StorageProvider.Pull()
 	payLoad := payLoad{api_key: a.config.APIKey}
+
 	if len(events) != 0 {
-		for _, event := range events {
-			payLoad.events = append(payLoad.events, event)
-		}
+		payLoad.events = append(payLoad.events, events...)
 	}
+
 	payLoadBytes, err := json.Marshal(payLoad)
 	if err != nil {
 		a.config.Logger.Error("Events encoding failed")
@@ -45,12 +46,14 @@ func (a *AmplitudeDestinationPlugin) Flush() {
 	if err != nil {
 		a.config.Logger.Error("New request failed")
 	}
+
 	request.Header.Set("Content-Type", "application/json")
 
 	httpClient := &http.Client{}
+
 	response, err := httpClient.Do(request)
 	if err != nil {
-		a.config.Logger("HTTP request failed")
+		a.config.Logger.Error("HTTP request failed")
 	}
 
 	defer response.Body.Close()

@@ -18,6 +18,7 @@ func NewClient(config Config) Client {
 	client := &client{configuration: config}
 	client.Add(&AmplitudeDestinationPlugin{})
 	client.Add(&ContextPlugin{})
+
 	return client
 }
 
