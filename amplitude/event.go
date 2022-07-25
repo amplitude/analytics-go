@@ -3,6 +3,8 @@ package amplitude
 import "time"
 
 type EventOptions struct {
+	userId   string
+	DeviceId string
 	Time     time.Time
 	InsertID string
 	Library  string
