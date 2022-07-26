@@ -28,15 +28,16 @@ type EventOptions struct {
 	AndroidID          string
 	Language           string
 	IP                 string
-	Price              string
-	Quantity           string
-	Revenue            string
+	Price              float64
+	Quantity           int
+	Revenue            float64
 	ProductID          string
 	RevenueType        string
 	EventID            int
 	SessionID          int
 	InsertID           string
 	PartnerId          string
+	Plan               Plan
 }
 
 type Event struct {
