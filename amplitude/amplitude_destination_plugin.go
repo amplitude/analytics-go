@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-type payLoad struct {
+type payload struct {
 	api_key string
 	events  []*Event
 }
@@ -23,7 +23,7 @@ func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 // Then pushed the event to storage waiting to be sent.
 func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 	if !isValidEvent(event) {
-		a.config.Logger.Error("Invalid event, EventType, userID, and DeviceID cannot be empty.", event)
+		a.config.Logger.Error("Invalid event, EventType, UserID, and DeviceID cannot be empty.", event)
 	}
 
 	a.config.StorageProvider.Push(event)
@@ -31,18 +31,18 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 
 func (a *AmplitudeDestinationPlugin) Flush() {
 	events := a.config.StorageProvider.Pull()
-	payLoad := payLoad{api_key: a.config.APIKey}
+	payload := payload{api_key: a.config.APIKey}
 
 	if len(events) != 0 {
-		payLoad.events = append(payLoad.events, events...)
+		payload.events = append(payload.events, events...)
 	}
 
-	payLoadBytes, err := json.Marshal(payLoad)
+	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
 		a.config.Logger.Error("Events encoding failed", err)
 	}
 
-	request, err := http.NewRequest("POST", a.config.ServerURL, bytes.NewBuffer(payLoadBytes))
+	request, err := http.NewRequest("POST", a.config.ServerURL, bytes.NewBuffer(payloadBytes))
 	if err != nil {
 		a.config.Logger.Error("Building new request failed", err)
 	}
