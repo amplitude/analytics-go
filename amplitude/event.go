@@ -12,9 +12,9 @@ type Event struct {
 	EventType string
 	EventOptions
 	EventProperties map[string]interface{}
-	UserProperties  map[string]interface{}
+	UserProperties  map[IdentityOp]interface{}
 	Groups          map[string][]string
-	GroupProperties map[string]interface{}
+	GroupProperties map[IdentityOp]interface{}
 }
 
 func (e Event) Clone() Event {
@@ -22,15 +22,24 @@ func (e Event) Clone() Event {
 		EventType:       e.EventType,
 		EventOptions:    e.EventOptions,
 		EventProperties: cloneProperties(e.EventProperties),
-		UserProperties:  cloneProperties(e.UserProperties),
+		UserProperties:  cloneIdentiyProperties(e.UserProperties),
 		Groups:          cloneGroups(e.Groups),
-		GroupProperties: cloneProperties(e.GroupProperties),
+		GroupProperties: cloneIdentiyProperties(e.GroupProperties),
 	}
 }
 
 // TODO: deep copy
 func cloneProperties(properties map[string]interface{}) map[string]interface{} {
 	result := make(map[string]interface{}, len(properties))
+	for k, v := range properties {
+		result[k] = v
+	}
+
+	return result
+}
+
+func cloneIdentiyProperties(properties map[IdentityOp]interface{}) map[IdentityOp]interface{} {
+	result := make(map[IdentityOp]interface{}, len(properties))
 	for k, v := range properties {
 		result[k] = v
 	}

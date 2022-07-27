@@ -4,7 +4,7 @@ type Client interface {
 	Track(event Event)
 	Identify(identify Identify, eventOptions EventOptions, eventProperties map[string]interface{})
 	GroupIdentify(groupType string, groupName []string, identify Identify,
-		eventOptions EventOptions, eventProperties, userProperties map[string]interface{},
+		eventOptions EventOptions, eventProperties map[string]interface{}, userProperties map[IdentityOp]interface{},
 	)
 	Revenue(revenue Revenue, eventOptions EventOptions)
 	SetGroup(groupType string, groupName []string, eventOptions EventOptions)
@@ -30,7 +30,7 @@ func (a *client) Track(event Event) {
 
 // Identify sends an identify event to update user Properties.
 func (a *client) Identify(identify Identify, eventOptions EventOptions, eventProperties map[string]interface{}) {
-	if !identify.IsValid() {
+	if !identify.isValid() {
 		a.configuration.Logger.Error("Empty Identify Properties")
 	} else {
 		identifyEvent := Event{
@@ -46,9 +46,9 @@ func (a *client) Identify(identify Identify, eventOptions EventOptions, eventPro
 
 // GroupIdentify sends a group identify event to update group Properties.
 func (a *client) GroupIdentify(groupType string, groupName []string, identify Identify,
-	eventOptions EventOptions, eventProperties, userProperties map[string]interface{},
+	eventOptions EventOptions, eventProperties map[string]interface{}, userProperties map[IdentityOp]interface{},
 ) {
-	if !identify.IsValid() {
+	if !identify.isValid() {
 		a.configuration.Logger.Error("Empty group identify Properties")
 	} else {
 		groupIdentifyEvent := Event{
