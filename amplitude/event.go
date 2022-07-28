@@ -3,9 +3,41 @@ package amplitude
 import "time"
 
 type EventOptions struct {
-	Time     time.Time
-	InsertID string
-	Library  string
+	UserID             string
+	DeviceID           string
+	Time               time.Time
+	LocationLat        float64
+	LocationLng        float64
+	AppVersion         string
+	VersionName        string
+	Library            string
+	Platform           string
+	OSName             string
+	OSVersion          string
+	DeviceBrand        string
+	DeviceManufacturer string
+	DeviceModel        string
+	Carrier            string
+	Country            string
+	Region             string
+	City               string
+	DMA                string
+	IDFA               string
+	IDFV               string
+	ADID               string
+	AndroidID          string
+	Language           string
+	IP                 string
+	Price              float64
+	Quantity           int
+	Revenue            float64
+	ProductID          string
+	RevenueType        string
+	EventID            int
+	SessionID          int
+	InsertID           string
+	PartnerId          string
+	Plan               Plan
 }
 
 type Event struct {
