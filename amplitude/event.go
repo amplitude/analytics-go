@@ -1,22 +1,20 @@
 package amplitude
 
-import "time"
-
 type EventOptions struct {
-	userId   string
-	DeviceId string
-	Time     time.Time
-	InsertID string
-	Library  string
+	UserId   string `json:"user_id"`
+	DeviceId string `json:"device_id"`
+	Time     int64  `json:"time,omitempty"`
+	InsertID string `json:"insert_id,omitempty"`
+	Library  string `json:"library,omitempty"`
 }
 
 type Event struct {
-	EventType string
+	EventType string `json:"event_type"`
 	EventOptions
-	EventProperties map[string]interface{}
-	UserProperties  map[string]interface{}
-	Groups          map[string][]string
-	GroupProperties map[string]interface{}
+	EventProperties map[string]interface{} `json:"event_properties,omitempty"`
+	UserProperties  map[string]interface{} `json:"user_properties,omitempty"`
+	Groups          map[string][]string    `json:"groups,omitempty"`
+	GroupProperties map[string]interface{} `json:"group_properties,omitempty"`
 }
 
 func (e Event) Clone() Event {

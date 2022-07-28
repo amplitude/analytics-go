@@ -7,8 +7,8 @@ import (
 )
 
 type payload struct {
-	api_key string
-	events  []*Event
+	ApiKey string   `json:"api_key"`
+	Events []*Event `json:"events"`
 }
 
 type AmplitudeDestinationPlugin struct {
@@ -31,23 +31,23 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 
 func (a *AmplitudeDestinationPlugin) Flush() {
 	events := a.config.StorageProvider.Pull()
-	payload := payload{api_key: a.config.APIKey}
-
-	if len(events) != 0 {
-		payload.events = append(payload.events, events...)
+	eventPayload := &payload{
+		ApiKey: a.config.APIKey,
+		Events: events,
 	}
 
-	payloadBytes, err := json.Marshal(payload)
+	eventPayloadBytes, err := json.Marshal(eventPayload)
 	if err != nil {
 		a.config.Logger.Error("Events encoding failed", err)
 	}
+	a.config.Logger.Debug("eventPayloadBytes: ", string(eventPayloadBytes))
 
-	request, err := http.NewRequest("POST", a.config.ServerURL, bytes.NewBuffer(payloadBytes))
+	request, err := http.NewRequest("POST", a.config.ServerURL, bytes.NewReader(eventPayloadBytes))
 	if err != nil {
 		a.config.Logger.Error("Building new request failed", err)
 	}
-
 	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Accept", "*/*")
 
 	httpClient := &http.Client{}
 
@@ -55,6 +55,8 @@ func (a *AmplitudeDestinationPlugin) Flush() {
 	if err != nil {
 		a.config.Logger.Error("HTTP request failed", err)
 	}
+
+	a.config.Logger.Info("HTTP request response", response)
 
 	defer response.Body.Close()
 }
@@ -64,5 +66,5 @@ func (a *AmplitudeDestinationPlugin) Shutdown() {
 }
 
 func isValidEvent(event *Event) bool {
-	return event.EventType != "" && event.userId != "" && event.DeviceId != ""
+	return event.EventType != "" && event.UserId != "" && event.DeviceId != ""
 }
