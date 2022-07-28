@@ -60,30 +60,41 @@ func (e Event) Clone() Event {
 	}
 }
 
-// TODO: deep copy
 func cloneProperties(properties map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{}, len(properties))
+	result := make(map[string]interface{})
 	for k, v := range properties {
-		result[k] = v
+		vm, ok := v.(map[string]interface{})
+		if ok {
+			result[k] = cloneProperties(vm)
+		} else {
+			result[k] = v
+		}
 	}
 
 	return result
 }
 
 func cloneIdentiyProperties(properties map[IdentityOp]interface{}) map[IdentityOp]interface{} {
-	result := make(map[IdentityOp]interface{}, len(properties))
+	result := make(map[IdentityOp]interface{})
 	for k, v := range properties {
-		result[k] = v
+		vm, ok := v.(map[IdentityOp]interface{})
+		if ok {
+			result[k] = cloneIdentiyProperties(vm)
+		} else {
+			result[k] = v
+		}
 	}
 
 	return result
 }
 
-// TODO: deep copy
 func cloneGroups(properties map[string][]string) map[string][]string {
-	result := make(map[string][]string, len(properties))
+	result := make(map[string][]string)
 	for k, v := range properties {
-		result[k] = v
+		result[k] = make([]string, len(v))
+		for index, s := range v {
+			result[k][index] = s
+		}
 	}
 
 	return result
