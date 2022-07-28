@@ -23,7 +23,10 @@ func main() {
 	client.Add(amplitude.NewContextPlugin())
 
 	// Create a BaseEvent instance
-	event := amplitude.Event{}
+	event := amplitude.Event{
+		EventOptions: amplitude.EventOptions{DeviceId: "go-device-id", UserId: "go-user-id"},
+		EventType:    "go-event-type",
+	}
 
 	// Track an event
 	client.Track(event)
