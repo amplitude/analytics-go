@@ -2,10 +2,9 @@ package amplitude
 
 type Client interface {
 	Track(event Event)
-	Identify(identify Identify, eventOptions EventOptions, eventProperties map[string]interface{})
+	Identify(identify Identify, eventOptions EventOptions)
 	GroupIdentify(groupType string, groupName []string, identify Identify,
-		eventOptions EventOptions, eventProperties map[string]interface{}, userProperties map[IdentityOp]interface{},
-	)
+		eventOptions EventOptions)
 	Revenue(revenue Revenue, eventOptions EventOptions)
 	SetGroup(groupType string, groupName []string, eventOptions EventOptions)
 	Flush()
@@ -29,15 +28,14 @@ func (a *client) Track(event Event) {
 }
 
 // Identify sends an identify event to update user Properties.
-func (a *client) Identify(identify Identify, eventOptions EventOptions, eventProperties map[string]interface{}) {
+func (a *client) Identify(identify Identify, eventOptions EventOptions) {
 	if !identify.isValid() {
 		a.configuration.Logger.Error("Empty Identify Properties")
 	} else {
 		identifyEvent := Event{
-			EventType:       IdentifyEventType,
-			EventOptions:    eventOptions,
-			EventProperties: eventProperties,
-			UserProperties:  identify.Properties,
+			EventType:      IdentifyEventType,
+			EventOptions:   eventOptions,
+			UserProperties: identify.Properties,
 		}
 
 		a.Track(identifyEvent)
@@ -46,16 +44,13 @@ func (a *client) Identify(identify Identify, eventOptions EventOptions, eventPro
 
 // GroupIdentify sends a group identify event to update group Properties.
 func (a *client) GroupIdentify(groupType string, groupName []string, identify Identify,
-	eventOptions EventOptions, eventProperties map[string]interface{}, userProperties map[IdentityOp]interface{},
-) {
+	eventOptions EventOptions) {
 	if !identify.isValid() {
 		a.configuration.Logger.Error("Empty group identify Properties")
 	} else {
 		groupIdentifyEvent := Event{
 			EventType:       GroupIdentifyEventType,
 			EventOptions:    eventOptions,
-			EventProperties: eventProperties,
-			UserProperties:  userProperties,
 			Groups:          map[string][]string{groupType: groupName},
 			GroupProperties: identify.Properties,
 		}
@@ -79,7 +74,7 @@ func (a *client) Revenue(revenue Revenue, eventOptions EventOptions) {
 func (a *client) SetGroup(groupType string, groupName []string, eventOptions EventOptions) {
 	identify := Identify{}
 	identify.Set(groupType, groupName)
-	a.Identify(identify, eventOptions, map[string]interface{}{})
+	a.Identify(identify, eventOptions)
 }
 
 // Flush flushes all events waiting to be sent in the buffer.
