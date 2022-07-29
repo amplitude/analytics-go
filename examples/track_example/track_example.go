@@ -32,7 +32,9 @@ func main() {
 	client.Track(event)
 
 	// Revenue Tracking
-	revenueObj := amplitude.NewRevenue(1, 10.0)
+	revenueObj := amplitude.NewRevenue(9.9)
+	revenueObj.Quantity = 2
+
 	client.Revenue(revenueObj, amplitude.EventOptions{UserID: "revenue-test-user-id"})
 
 	// Flush the event buffer

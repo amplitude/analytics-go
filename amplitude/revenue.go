@@ -11,9 +11,9 @@ type Revenue struct {
 	Revenue     float64
 }
 
-func NewRevenue(quantity int, price float64) Revenue {
+func NewRevenue(price float64) Revenue {
 	return Revenue{
-		Quantity: quantity,
+		Quantity: 1,
 		Price:    price,
 	}
 }
@@ -39,6 +39,13 @@ func (r Revenue) GetEventProperties() map[string]interface{} {
 	eventProperties[RevenueType] = r.RevenueType
 	eventProperties[RevenueReceipt] = r.Receipt
 	eventProperties[RevenueReceiptSig] = r.ReceiptSig
-	eventProperties[DefaultRevenue] = r.Revenue
+	if r.Revenue == 0 {
+		if r.Price != 0 && r.Quantity != 0 {
+			r.Revenue = r.Price * float64(r.Quantity)
+		}
+	} else {
+		eventProperties[DefaultRevenue] = r.Revenue
+	}
+
 	return eventProperties
 }
