@@ -24,7 +24,7 @@ func main() {
 
 	// Create a BaseEvent instance
 	event := amplitude.Event{
-		EventOptions: amplitude.EventOptions{DeviceId: "go-device-id", UserId: "go-user-id"},
+		EventOptions: amplitude.EventOptions{DeviceID: "go-device-id", UserID: "go-user-id"},
 		EventType:    "go-event-type",
 	}
 

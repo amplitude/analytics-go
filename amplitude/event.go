@@ -1,11 +1,11 @@
 package amplitude
 
 type EventOptions struct {
-	UserID   string `json:"user_id"`
-	DeviceId string `json:"device_id"`
-	Time     int64  `json:"time,omitempty"`
-	InsertID string `json:"insert_id,omitempty"`
-	Library  string `json:"library,omitempty"`
+	UserID             string `json:"user_id"`
+	DeviceID           string `json:"device_id"`
+	Time               int64  `json:"time,omitempty"`
+	InsertID           string `json:"insert_id,omitempty"`
+	Library            string `json:"library,omitempty"`
 	LocationLat        float64
 	LocationLng        float64
 	AppVersion         string

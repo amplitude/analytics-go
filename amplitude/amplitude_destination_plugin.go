@@ -7,7 +7,7 @@ import (
 )
 
 type payload struct {
-	ApiKey string   `json:"api_key"`
+	APIKey string   `json:"api_key"`
 	Events []*Event `json:"events"`
 }
 
@@ -32,7 +32,7 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 func (a *AmplitudeDestinationPlugin) Flush() {
 	events := a.config.Storage.Pull()
 	eventPayload := &payload{
-		ApiKey: a.config.APIKey,
+		APIKey: a.config.APIKey,
 		Events: events,
 	}
 
@@ -40,12 +40,14 @@ func (a *AmplitudeDestinationPlugin) Flush() {
 	if err != nil {
 		a.config.Logger.Error("Events encoding failed", err)
 	}
+
 	a.config.Logger.Debug("eventPayloadBytes: ", string(eventPayloadBytes))
 
 	request, err := http.NewRequest("POST", a.config.ServerURL, bytes.NewReader(eventPayloadBytes))
 	if err != nil {
 		a.config.Logger.Error("Building new request failed", err)
 	}
+
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "*/*")
 
@@ -66,5 +68,5 @@ func (a *AmplitudeDestinationPlugin) Shutdown() {
 }
 
 func isValidEvent(event *Event) bool {
-	return event.EventType != "" && event.UserId != "" && event.DeviceId != ""
+	return event.EventType != "" && event.UserID != "" && event.DeviceID != ""
 }
