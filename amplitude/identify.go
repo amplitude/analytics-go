@@ -43,19 +43,23 @@ func (i *Identify) containsOperation(op IdentityOp) bool {
 
 func (i *Identify) setUserProperty(operation IdentityOp, property string, value interface{}) {
 	if len(property) == 0 {
-		// TO-DO: logger
+		// TODO: logger
+		return
 	}
 
 	if value == nil {
-		// TO-DO: logger
+		// TODO: logger
+		return
 	}
 
 	if i.containsClearAllOperation() {
-		// TO-DO: logger
+		// TODO: logger
+		return
 	}
 
 	if i.containsProperty(property) {
-		// TO-DO: logger
+		// TODO: logger
+		return
 	}
 
 	if !i.containsOperation(operation) {
