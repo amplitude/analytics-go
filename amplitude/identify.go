@@ -22,13 +22,9 @@ func (i *Identify) containsClearAllOperation() bool {
 }
 
 func (i *Identify) containsProperty(property string) bool {
-	for p := range i.PropertiesSet {
-		if p == property {
-			return true
-		}
-	}
+	_, ok := i.PropertiesSet[property]
 
-	return false
+	return ok
 }
 
 func (i *Identify) containsOperation(op IdentityOp) bool {
