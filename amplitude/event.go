@@ -1,5 +1,7 @@
 package amplitude
 
+import "time"
+
 type EventOptions struct {
 	UserID             string `json:"user_id"`
 	DeviceID           string `json:"device_id"`
@@ -36,6 +38,10 @@ type EventOptions struct {
 	SessionID          int
 	PartnerId          string
 	Plan               Plan
+}
+
+func (eo *EventOptions) setTime(time *time.Time) {
+	eo.Time = time.UnixMilli()
 }
 
 type Event struct {
