@@ -39,13 +39,7 @@ func (r Revenue) GetEventProperties() map[string]interface{} {
 	eventProperties[RevenueType] = r.RevenueType
 	eventProperties[RevenueReceipt] = r.Receipt
 	eventProperties[RevenueReceiptSig] = r.ReceiptSig
-	if r.Revenue == 0 {
-		if r.Price != 0 && r.Quantity != 0 {
-			r.Revenue = r.Price * float64(r.Quantity)
-		}
-	} else {
-		eventProperties[DefaultRevenue] = r.Revenue
-	}
+	eventProperties[DefaultRevenue] = r.Revenue
 
 	return eventProperties
 }
