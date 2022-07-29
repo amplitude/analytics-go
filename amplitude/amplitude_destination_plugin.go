@@ -26,11 +26,11 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 		a.config.Logger.Error("Invalid event, EventType, UserID, and DeviceID cannot be empty.", event)
 	}
 
-	a.config.StorageProvider.Push(event)
+	a.config.Storage.Push(event)
 }
 
 func (a *AmplitudeDestinationPlugin) Flush() {
-	events := a.config.StorageProvider.Pull()
+	events := a.config.Storage.Pull()
 	eventPayload := &payload{
 		ApiKey: a.config.APIKey,
 		Events: events,

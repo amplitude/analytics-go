@@ -16,7 +16,7 @@ type Config struct {
 	Callback        EventCallback
 	ServerZone      ServerZone
 	UseBatch        bool
-	StorageProvider Storage
+	Storage         Storage
 	OptOut          bool
 	Plan            Plan
 	ServerURL       string
@@ -33,7 +33,7 @@ func NewConfig(apiKey string) Config {
 		Callback:        nil,
 		ServerZone:      ServerZoneUS,
 		UseBatch:        false,
-		StorageProvider: &InMemoryStorage{},
+		Storage:         &InMemoryStorage{},
 		OptOut:          false,
 		ServerURL:       HTTPV2,
 	}
