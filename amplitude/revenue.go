@@ -1,8 +1,21 @@
 package amplitude
 
 type Revenue struct {
-	Price    float64
-	Quantity int
+	Price       float64
+	Quantity    int
+	ProductID   string
+	RevenueType string
+	Receipt     string
+	ReceiptSig  string
+	Properties  map[string]interface{}
+	Revenue     float64
+}
+
+func NewRevenue(quantity int, price float64) Revenue {
+	return Revenue{
+		Quantity: quantity,
+		Price:    price,
+	}
 }
 
 // IsValid checks if a revenue instance has a positive integer quantity.
@@ -19,5 +32,13 @@ func (r Revenue) ToRevenueEvent(eventOptions EventOptions) Event {
 }
 
 func (r Revenue) GetEventProperties() map[string]interface{} {
-	return map[string]interface{}{}
+	eventProperties := make(map[string]interface{})
+	eventProperties[RevenueProductID] = r.ProductID
+	eventProperties[RevenueQuantity] = r.Quantity
+	eventProperties[RevenuePrice] = r.Price
+	eventProperties[RevenueType] = r.RevenueType
+	eventProperties[RevenueReceipt] = r.Receipt
+	eventProperties[RevenueReceiptSig] = r.ReceiptSig
+	eventProperties[DefaultRevenue] = r.Revenue
+	return eventProperties
 }
