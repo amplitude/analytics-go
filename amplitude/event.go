@@ -44,9 +44,9 @@ type Event struct {
 	EventType string
 	EventOptions
 	EventProperties map[string]interface{}
-	UserProperties  map[IdentityOp]interface{}
+	UserProperties  map[IdentityOp]map[string]interface{}
 	Groups          map[string][]string
-	GroupProperties map[IdentityOp]interface{}
+	GroupProperties map[IdentityOp]map[string]interface{}
 }
 
 func (e Event) Clone() Event {
@@ -75,16 +75,11 @@ func cloneProperties(properties map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func cloneIdentityProperties(properties map[IdentityOp]interface{}) map[IdentityOp]interface{} {
-	result := make(map[IdentityOp]interface{})
+func cloneIdentityProperties(properties map[IdentityOp]map[string]interface{}) map[IdentityOp]map[string]interface{} {
+	result := make(map[IdentityOp]map[string]interface{})
 
-	for k, v := range properties {
-		vm, ok := v.(map[IdentityOp]interface{})
-		if ok {
-			result[k] = cloneIdentityProperties(vm)
-		} else {
-			result[k] = v
-		}
+	for operation, p := range properties {
+		result[operation] = cloneProperties(p)
 	}
 
 	return result
@@ -94,9 +89,7 @@ func cloneGroups(properties map[string][]string) map[string][]string {
 	result := make(map[string][]string)
 	for k, v := range properties {
 		result[k] = make([]string, len(v))
-		for index, s := range v {
-			result[k][index] = s
-		}
+		copy(result[k], v)
 	}
 
 	return result
