@@ -1,7 +1,7 @@
 package amplitude
 
 type Identify struct {
-	PropertiesSet []string
+	PropertiesSet map[string]bool
 	Properties    map[IdentityOp]map[string]interface{}
 }
 
@@ -22,7 +22,7 @@ func (i *Identify) containsClearAllOperation() bool {
 }
 
 func (i *Identify) containsProperty(property string) bool {
-	for _, p := range i.PropertiesSet {
+	for p := range i.PropertiesSet {
 		if p == property {
 			return true
 		}
@@ -41,7 +41,7 @@ func (i *Identify) containsOperation(op IdentityOp) bool {
 	return false
 }
 
-func (i *Identify) setUserProperty(op IdentityOp, property string, value interface{}) {
+func (i *Identify) setUserProperty(operation IdentityOp, property string, value interface{}) {
 	if len(property) == 0 {
 		// TO-DO: logger
 	}
@@ -58,12 +58,12 @@ func (i *Identify) setUserProperty(op IdentityOp, property string, value interfa
 		// TO-DO: logger
 	}
 
-	if !i.containsOperation(op) {
-		i.Properties[op] = make(map[string]interface{})
+	if !i.containsOperation(operation) {
+		i.Properties[operation] = make(map[string]interface{})
 	}
 
-	i.Properties[op][property] = value
-	i.PropertiesSet = append(i.PropertiesSet, property)
+	i.Properties[operation][property] = value
+	i.PropertiesSet[property] = true
 }
 
 // Set sets the value of a user property.
