@@ -61,6 +61,7 @@ func (i *Identify) setUserProperty(op IdentityOp, property string, value interfa
 	if !i.containsOperation(op) {
 		i.Properties[op] = make(map[string]interface{})
 	}
+
 	i.Properties[op] = map[string]interface{}{property: value}
 	i.PropertiesSet = append(i.PropertiesSet, property)
 }
@@ -73,7 +74,7 @@ func (i *Identify) Set(property string, value interface{}) *Identify {
 }
 
 // SetOnce sets the value of user property only once.
-// Subsequent calls using SetOnce will be ignored
+// Subsequent calls using SetOnce will be ignored.
 func (i *Identify) SetOnce(property string, value interface{}) *Identify {
 	i.setUserProperty(IdentityOpSetOnce, property, value)
 
@@ -147,7 +148,7 @@ func (i *Identify) Unset(property string, value interface{}) *Identify {
 	return i
 }
 
-// ClearAll removes all user properties of this user
+// ClearAll removes all user properties of this user.
 func (i *Identify) ClearAll(property string, value interface{}) *Identify {
 	i.setUserProperty(IdentityOpClearAll, property, value)
 

@@ -36,7 +36,7 @@ type EventOptions struct {
 	EventID            int
 	SessionID          int
 	InsertID           string
-	PartnerId          string
+	PartnerID          string
 	Plan               Plan
 }
 
@@ -54,14 +54,15 @@ func (e Event) Clone() Event {
 		EventType:       e.EventType,
 		EventOptions:    e.EventOptions,
 		EventProperties: cloneProperties(e.EventProperties),
-		UserProperties:  cloneIdentiyProperties(e.UserProperties),
+		UserProperties:  cloneIdentityProperties(e.UserProperties),
 		Groups:          cloneGroups(e.Groups),
-		GroupProperties: cloneIdentiyProperties(e.GroupProperties),
+		GroupProperties: cloneIdentityProperties(e.GroupProperties),
 	}
 }
 
 func cloneProperties(properties map[string]interface{}) map[string]interface{} {
 	result := make(map[string]interface{})
+
 	for k, v := range properties {
 		vm, ok := v.(map[string]interface{})
 		if ok {
@@ -74,12 +75,13 @@ func cloneProperties(properties map[string]interface{}) map[string]interface{} {
 	return result
 }
 
-func cloneIdentiyProperties(properties map[IdentityOp]interface{}) map[IdentityOp]interface{} {
+func cloneIdentityProperties(properties map[IdentityOp]interface{}) map[IdentityOp]interface{} {
 	result := make(map[IdentityOp]interface{})
+
 	for k, v := range properties {
 		vm, ok := v.(map[IdentityOp]interface{})
 		if ok {
-			result[k] = cloneIdentiyProperties(vm)
+			result[k] = cloneIdentityProperties(vm)
 		} else {
 			result[k] = v
 		}
