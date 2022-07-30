@@ -36,7 +36,7 @@ type EventOptions struct {
 	EventID            int
 	SessionID          int
 	InsertID           string
-	PartnerId          string
+	PartnerID          string
 	Plan               Plan
 }
 
@@ -44,9 +44,9 @@ type Event struct {
 	EventType string
 	EventOptions
 	EventProperties map[string]interface{}
-	UserProperties  map[string]interface{}
+	UserProperties  map[IdentityOp]map[string]interface{}
 	Groups          map[string][]string
-	GroupProperties map[string]interface{}
+	GroupProperties map[IdentityOp]map[string]interface{}
 }
 
 func (e Event) Clone() Event {
@@ -54,27 +54,42 @@ func (e Event) Clone() Event {
 		EventType:       e.EventType,
 		EventOptions:    e.EventOptions,
 		EventProperties: cloneProperties(e.EventProperties),
-		UserProperties:  cloneProperties(e.UserProperties),
+		UserProperties:  cloneIdentityProperties(e.UserProperties),
 		Groups:          cloneGroups(e.Groups),
-		GroupProperties: cloneProperties(e.GroupProperties),
+		GroupProperties: cloneIdentityProperties(e.GroupProperties),
 	}
 }
 
-// TODO: deep copy
 func cloneProperties(properties map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{}, len(properties))
+	result := make(map[string]interface{})
+
 	for k, v := range properties {
-		result[k] = v
+		vm, ok := v.(map[string]interface{})
+		if ok {
+			result[k] = cloneProperties(vm)
+		} else {
+			result[k] = v
+		}
 	}
 
 	return result
 }
 
-// TODO: deep copy
+func cloneIdentityProperties(properties map[IdentityOp]map[string]interface{}) map[IdentityOp]map[string]interface{} {
+	result := make(map[IdentityOp]map[string]interface{})
+
+	for operation, p := range properties {
+		result[operation] = cloneProperties(p)
+	}
+
+	return result
+}
+
 func cloneGroups(properties map[string][]string) map[string][]string {
-	result := make(map[string][]string, len(properties))
+	result := make(map[string][]string)
 	for k, v := range properties {
-		result[k] = v
+		result[k] = make([]string, len(v))
+		copy(result[k], v)
 	}
 
 	return result
