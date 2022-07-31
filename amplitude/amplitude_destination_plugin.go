@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 type payload struct {
@@ -12,11 +13,13 @@ type payload struct {
 }
 
 type AmplitudeDestinationPlugin struct {
-	config Config
+	config    Config
+	scheduled bool
 }
 
 func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 	a.config = config
+	a.scheduled = false
 }
 
 // Execute processes the event with plugins added to the destination plugin.
@@ -27,6 +30,9 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 	}
 
 	a.config.Storage.Push(event)
+	if !a.scheduled {
+		time.AfterFunc(a.config.FlushInterval, a.Flush)
+	}
 }
 
 func (a *AmplitudeDestinationPlugin) Flush() {
@@ -36,6 +42,8 @@ func (a *AmplitudeDestinationPlugin) Flush() {
 	for _, c := range chunks {
 		a.send(c)
 	}
+
+	a.scheduled = false
 }
 
 func (a *AmplitudeDestinationPlugin) send(chunk []*Event) {
