@@ -30,6 +30,7 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 	}
 
 	a.config.Storage.Push(event)
+
 	if !a.scheduled {
 		time.AfterFunc(a.config.FlushInterval, a.Flush)
 	}
@@ -91,9 +92,13 @@ func (a *AmplitudeDestinationPlugin) chunk(events []*Event) [][]*Event {
 	chunkNum := len(events)/a.config.FlushQueueSize + 1
 	chunks := make([][]*Event, chunkNum)
 
-	for index, c := range chunks {
+	for index, c := range chunks[:chunkNum-1] {
+		c = make([]*Event, a.config.FlushQueueSize)
 		copy(c, events[index*a.config.FlushQueueSize:(index+1)*a.config.FlushQueueSize-1])
 	}
+
+	chunks[chunkNum-1] = make([]*Event, len(events)-(chunkNum-1)*a.config.FlushQueueSize)
+	copy(chunks[chunkNum-1], events[(chunkNum-1)*a.config.FlushQueueSize:])
 
 	return chunks
 }
