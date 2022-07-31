@@ -31,9 +31,17 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 
 func (a *AmplitudeDestinationPlugin) Flush() {
 	events := a.config.Storage.Pull()
+	chunks := a.chunk(events)
+
+	for _, c := range chunks {
+		a.send(c)
+	}
+}
+
+func (a *AmplitudeDestinationPlugin) send(chunk []*Event) {
 	eventPayload := &payload{
 		APIKey: a.config.APIKey,
-		Events: events,
+		Events: chunk,
 	}
 
 	eventPayloadBytes, err := json.Marshal(eventPayload)
@@ -69,4 +77,15 @@ func (a *AmplitudeDestinationPlugin) Shutdown() {
 
 func isValidEvent(event *Event) bool {
 	return event.EventType != "" && event.UserID != "" && event.DeviceID != ""
+}
+
+func (a *AmplitudeDestinationPlugin) chunk(events []*Event) [][]*Event {
+	chunkNum := len(events)/a.config.FlushQueueSize + 1
+	chunks := make([][]*Event, chunkNum)
+
+	for index, c := range chunks {
+		copy(c, events[index*a.config.FlushQueueSize:(index+1)*a.config.FlushQueueSize-1])
+	}
+
+	return chunks
 }
