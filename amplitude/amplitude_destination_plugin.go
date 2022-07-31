@@ -38,10 +38,12 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 
 func (a *AmplitudeDestinationPlugin) Flush() {
 	events := a.config.Storage.Pull()
+	a.config.Logger.Debug("events: ", events)
 	chunks := a.chunk(events)
+	a.config.Logger.Debug("chunks: ", chunks)
 
 	for _, c := range chunks {
-		a.send(c)
+		go a.send(c)
 	}
 
 	a.scheduled = false
@@ -92,9 +94,9 @@ func (a *AmplitudeDestinationPlugin) chunk(events []*Event) [][]*Event {
 	chunkNum := len(events)/a.config.FlushQueueSize + 1
 	chunks := make([][]*Event, chunkNum)
 
-	for index, c := range chunks[:chunkNum-1] {
-		c = make([]*Event, a.config.FlushQueueSize)
-		copy(c, events[index*a.config.FlushQueueSize:(index+1)*a.config.FlushQueueSize-1])
+	for index, _ := range chunks[:chunkNum-1] {
+		chunks[index] = make([]*Event, a.config.FlushQueueSize)
+		copy(chunks[index], events[index*a.config.FlushQueueSize:(index+1)*a.config.FlushQueueSize])
 	}
 
 	chunks[chunkNum-1] = make([]*Event, len(events)-(chunkNum-1)*a.config.FlushQueueSize)
