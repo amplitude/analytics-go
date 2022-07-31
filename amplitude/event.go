@@ -36,11 +36,11 @@ type EventOptions struct {
 	RevenueType        string
 	EventID            int
 	SessionID          int
-	PartnerId          string
+	PartnerID          string
 	Plan               Plan
 }
 
-func (eo *EventOptions) setTime(time *time.Time) {
+func (eo *EventOptions) SetTime(time *time.Time) {
 	eo.Time = time.UnixMilli()
 }
 
