@@ -17,7 +17,7 @@ func callbackFunc(e string, code int, message string) {
 
 func main() {
 
-	config := amplitude.NewConfig("c253b75dce3e593c44ea5eb95999f92a")
+	config := amplitude.NewConfig("your-api-key")
 	config.FlushQueueSize = 3
 
 	// Config callback function (optional)
