@@ -3,8 +3,8 @@ package amplitude
 import "time"
 
 type EventOptions struct {
-	UserID             string  `json:"user_id"`
-	DeviceID           string  `json:"device_id"`
+	UserID             string  `json:"user_id,omitempty"`
+	DeviceID           string  `json:"device_id,omitempty"`
 	Time               int64   `json:"time,omitempty"`
 	InsertID           string  `json:"insert_id,omitempty"`
 	Library            string  `json:"library,omitempty"`
