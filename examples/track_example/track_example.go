@@ -37,13 +37,19 @@ func main() {
 		client.Track(event)
 	}
 
-	time.Sleep(time.Second * 2)
-
 	// Flush the event buffer
 	client.Flush()
 
+	for i := 10; i < 20; i++ {
+		event := amplitude.Event{
+			EventType: "go-event-type",
+			EventOptions: amplitude.EventOptions{
+				UserID:   "go-user-id-" + fmt.Sprint(i),
+				DeviceID: "go-device-id-" + fmt.Sprint(i),
+			},
+		}
+		client.Track(event)
+	}
 	// Shutdown the client
 	client.Shutdown()
-
-	time.Sleep(time.Second * 10)
 }

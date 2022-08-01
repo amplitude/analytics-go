@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -13,9 +14,10 @@ type payload struct {
 }
 
 type AmplitudeDestinationPlugin struct {
-	config    Config
-	scheduled bool
-	storage   chan *Event
+	config        Config
+	scheduled     bool
+	storage       chan *Event
+	sendWaitGroup sync.WaitGroup
 }
 
 func (a *AmplitudeDestinationPlugin) Setup(config Config) {
@@ -38,7 +40,7 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 	a.storage <- event
 
 	if !a.scheduled {
-		time.AfterFunc(a.config.FlushInterval, func() { go a.Flush() })
+		time.AfterFunc(a.config.FlushInterval, func() { a.Flush() })
 	}
 }
 
@@ -53,6 +55,8 @@ func (a *AmplitudeDestinationPlugin) Flush() {
 	for i := 0; i < currentStorageSize; i++ {
 		events[i] = <-a.storage
 	}
+
+	a.sendWaitGroup.Add(1)
 
 	go a.send(events)
 
@@ -89,11 +93,15 @@ func (a *AmplitudeDestinationPlugin) send(chunk []*Event) {
 
 	a.config.Logger.Info("HTTP request response", response)
 
-	defer response.Body.Close()
+	defer func() {
+		response.Body.Close()
+		a.sendWaitGroup.Done()
+	}()
 }
 
 func (a *AmplitudeDestinationPlugin) Shutdown() {
 	a.Flush()
+	a.sendWaitGroup.Wait()
 }
 
 func isValidEvent(event *Event) bool {
