@@ -6,7 +6,6 @@ package main
 import (
 	"fmt"
 	"github.com/amplitude/Amplitude-Go/amplitude"
-	"time"
 )
 
 // Define your callback function (optional)
