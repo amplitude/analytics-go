@@ -62,7 +62,7 @@ func (a *client) GroupIdentify(groupType string, groupName []string, identify Id
 // Revenue sends a revenue event with revenue info in eventProperties.
 func (a *client) Revenue(revenue Revenue, eventOptions EventOptions) {
 	if !revenue.IsValid() {
-		a.configuration.Logger.Error("Invalid Revenue object: Quantity should be positive and either Revenue or Price should be set")
+		a.configuration.Logger.Error("Invalid Revenue object: either Revenue or Price should be set")
 	} else {
 		revenueEvent := revenue.ToRevenueEvent(eventOptions)
 		a.Track(revenueEvent)
