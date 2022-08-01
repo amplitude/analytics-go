@@ -48,7 +48,8 @@ func (a *client) Identify(identify Identify, eventOptions EventOptions) {
 
 // GroupIdentify sends a group identify event to update group Properties.
 func (a *client) GroupIdentify(groupType string, groupName []string, identify Identify,
-	eventOptions EventOptions) {
+	eventOptions EventOptions,
+) {
 	if !identify.IsValid() {
 		a.configuration.Logger.Error("Empty group identify Properties")
 	} else {

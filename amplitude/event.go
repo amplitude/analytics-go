@@ -37,7 +37,7 @@ type EventOptions struct {
 	EventID            int     `json:"event_id,omitempty"`
 	SessionID          int     `json:"session_id,omitempty"`
 	PartnerID          string  `json:"partner_id,omitempty"`
-	Plan               Plan
+	Plan               Plan    `json:"plan,omitempty"`
 }
 
 func (eo *EventOptions) SetTime(time *time.Time) {

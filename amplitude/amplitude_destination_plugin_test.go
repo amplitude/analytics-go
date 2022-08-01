@@ -2,8 +2,9 @@ package amplitude
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestChunk(t *testing.T) {
@@ -13,8 +14,10 @@ func TestChunk(t *testing.T) {
 		},
 		scheduled: false,
 	}
+
 	events := make([]*Event, 10)
-	for index, _ := range events {
+
+	for index := range events {
 		events[index] = &Event{
 			EventOptions: EventOptions{
 				UserID: "user-" + fmt.Sprint(index),
@@ -25,5 +28,4 @@ func TestChunk(t *testing.T) {
 	chunks := amplitudeDestinationPlugin.chunk(events)
 	assert.Equal(t, 4, len(chunks))
 	assert.Equal(t, 1, len(chunks[len(chunks)-1]))
-
 }
