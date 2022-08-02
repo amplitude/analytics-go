@@ -39,6 +39,14 @@ func main() {
 
 	time.Sleep(time.Second * 2)
 
+	// Revenue Tracking
+	revenueObj := amplitude.Revenue{
+		Price:    9.9,
+		Quantity: 2,
+	}
+
+	client.Revenue(revenueObj, amplitude.EventOptions{UserID: "revenue-test-user-id"})
+
 	// Flush the event buffer
 	client.Flush()
 
