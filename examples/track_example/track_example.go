@@ -23,10 +23,21 @@ func main() {
 	client.Add(amplitude.NewContextPlugin())
 
 	// Create a BaseEvent instance
-	event := amplitude.Event{}
+	event := amplitude.Event{
+		EventOptions: amplitude.EventOptions{DeviceID: "go-device-id", UserID: "go-user-id"},
+		EventType:    "go-event-type",
+	}
 
 	// Track an event
 	client.Track(event)
+
+	// Revenue Tracking
+	revenueObj := amplitude.Revenue{
+		Price:    9.9,
+		Quantity: 2,
+	}
+
+	client.Revenue(revenueObj, amplitude.EventOptions{UserID: "revenue-test-user-id"})
 
 	// Flush the event buffer
 	client.Flush()
