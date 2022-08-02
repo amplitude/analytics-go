@@ -15,7 +15,7 @@ const (
 	ServerZoneEU = "EU"
 	ServerZoneUS = "US"
 	Batch        = "batch"
-	HTTPV2       = "v2"
+	HTTPV2       = "https://api2.amplitude.com/2/httpapi"
 
 	LoggerName = "amplitude"
 

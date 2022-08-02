@@ -16,7 +16,7 @@ type Config struct {
 	Callback        EventCallback
 	ServerZone      ServerZone
 	UseBatch        bool
-	StorageProvider StorageProvider
+	Storage         Storage
 	OptOut          bool
 	Plan            Plan
 	ServerURL       string
@@ -28,17 +28,15 @@ func NewConfig(apiKey string) Config {
 		FlushInterval:   DefaultFlushInterval,
 		FlushQueueSize:  DefaultFlushQueueSize,
 		FlushMaxRetries: DefaultFlushMaxRetries,
+		Logger:          newDefaultLogger(),
 		MinIDLength:     DefaultMinIDLength,
 		Callback:        nil,
 		ServerZone:      ServerZoneUS,
 		UseBatch:        false,
+		Storage:         &InMemoryStorage{},
 		OptOut:          false,
 		ServerURL:       HTTPV2,
 	}
-}
-
-func getStorage(c *Config) Storage {
-	return c.StorageProvider.GetStorage()
 }
 
 func (c Config) IsValid() bool {

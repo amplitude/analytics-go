@@ -1,9 +1,8 @@
 package amplitude
 
 import (
-	"time"
-
 	"github.com/google/uuid"
+	"time"
 )
 
 // ContextPlugin is the default enrichment plugin that add library info to event.
@@ -28,8 +27,8 @@ func (c *ContextPlugin) Priority() EnrichmentPriority {
 // Execute sets default timestamp and insertID if not set elsewhere
 // It also adds SDK name and version to event library.
 func (c *ContextPlugin) Execute(event *Event) *Event {
-	if event.Time.IsZero() {
-		event.Time = time.Now()
+	if event.Time == 0 {
+		event.Time = time.Now().UnixMilli()
 	}
 
 	if event.InsertID == "" {

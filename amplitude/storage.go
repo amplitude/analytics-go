@@ -1,47 +1,23 @@
 package amplitude
 
 type Storage interface {
-	push()
-	pull()
-	pullAll()
-}
-
-type StorageProvider interface {
-	GetStorage() Storage
+	Push(event *Event)
+	Pull() []*Event
 }
 
 type InMemoryStorage struct {
-	totalEvents   int
-	configuration Config
-	workers       Worker
+	eventsBuffer []*Event
 }
 
-func (i *InMemoryStorage) setup(configuration Config, workers Worker) {
+// Push pushes an event to default InMemoryStorage.
+func (i *InMemoryStorage) Push(event *Event) {
+	i.eventsBuffer = append(i.eventsBuffer, event)
 }
 
-func (i InMemoryStorage) push(event Event, delay int) {
+// Pull returns all events in default InMemoryStorage and empties InMemoryStorage.
+func (i *InMemoryStorage) Pull() []*Event {
+	events := i.eventsBuffer
+	i.eventsBuffer = []*Event{}
 
-}
-
-func (i InMemoryStorage) pull(batchSize int) {
-
-}
-
-func (i InMemoryStorage) pullAll() {
-
-}
-
-func (i InMemoryStorage) insertEvent(totalDelay int, event Event) {
-
-}
-
-func (i InMemoryStorage) getRetryDelay(retry int) {
-
-}
-
-type InMemoryStorageProvider struct {
-}
-
-func (i InMemoryStorageProvider) getStorage() {
-
+	return events
 }
