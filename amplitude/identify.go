@@ -46,7 +46,7 @@ func (i *Identify) setUserProperty(operation IdentityOp, property string, value 
 		return
 	}
 
-	if value == nil {
+	if value == nil && operation != IdentityOpClearAll {
 		globalLogger.Warn("Attempting to perform operation " +
 			string(operation) +
 			" with null value for property " +
@@ -163,15 +163,15 @@ func (i *Identify) Remove(property string, value interface{}) *Identify {
 }
 
 // Unset removes the user property from the user profile.
-func (i *Identify) Unset(property string, value interface{}) *Identify {
-	i.setUserProperty(IdentityOpUnset, property, value)
+func (i *Identify) Unset(property string) *Identify {
+	i.setUserProperty(IdentityOpUnset, property, UnsetValue)
 
 	return i
 }
 
 // ClearAll removes all user properties of this user.
-func (i *Identify) ClearAll(property string, value interface{}) *Identify {
-	i.setUserProperty(IdentityOpClearAll, property, value)
+func (i *Identify) ClearAll() *Identify {
+	i.setUserProperty(IdentityOpClearAll, UnsetValue, nil)
 
 	return i
 }
