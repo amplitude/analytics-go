@@ -4,7 +4,9 @@ package main
 
 // Import amplitude package
 import (
+	"fmt"
 	"github.com/amplitude/Amplitude-Go/amplitude"
+	"time"
 )
 
 // Define your callback function (optional)
@@ -15,21 +17,27 @@ func callbackFunc(e string, code int, message string) {
 
 func main() {
 
-	config := amplitude.NewConfig("your_api_key")
+	config := amplitude.NewConfig("your-api-key")
+	config.FlushQueueSize = 3
 
 	// Config callback function (optional)
 	client := amplitude.NewClient(config)
 
 	client.Add(amplitude.NewContextPlugin())
 
-	// Create a BaseEvent instance
-	event := amplitude.Event{
-		EventOptions: amplitude.EventOptions{DeviceID: "go-device-id", UserID: "go-user-id"},
-		EventType:    "go-event-type",
+	// Create and track events
+	for i := 0; i < 10; i++ {
+		event := amplitude.Event{
+			EventType: "go-event-type",
+			EventOptions: amplitude.EventOptions{
+				UserID:   "go-user-id-" + fmt.Sprint(i),
+				DeviceID: "go-device-id-" + fmt.Sprint(i),
+			},
+		}
+		client.Track(event)
 	}
 
-	// Track an event
-	client.Track(event)
+	time.Sleep(time.Second * 2)
 
 	// Revenue Tracking
 	revenueObj := amplitude.Revenue{
@@ -44,4 +52,6 @@ func main() {
 
 	// Shutdown the client
 	client.Shutdown()
+
+	time.Sleep(time.Second * 10)
 }

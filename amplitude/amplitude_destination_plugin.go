@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 type payload struct {
@@ -12,11 +13,13 @@ type payload struct {
 }
 
 type AmplitudeDestinationPlugin struct {
-	config Config
+	config    Config
+	scheduled bool
 }
 
 func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 	a.config = config
+	a.scheduled = false
 }
 
 // Execute processes the event with plugins added to the destination plugin.
@@ -27,13 +30,29 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 	}
 
 	a.config.Storage.Push(event)
+
+	if !a.scheduled {
+		time.AfterFunc(a.config.FlushInterval, a.Flush)
+	}
 }
 
 func (a *AmplitudeDestinationPlugin) Flush() {
 	events := a.config.Storage.Pull()
+	a.config.Logger.Debug("events: ", events)
+	chunks := a.chunk(events)
+	a.config.Logger.Debug("chunks: ", chunks)
+
+	for _, c := range chunks {
+		go a.send(c)
+	}
+
+	a.scheduled = false
+}
+
+func (a *AmplitudeDestinationPlugin) send(chunk []*Event) {
 	eventPayload := &payload{
 		APIKey: a.config.APIKey,
-		Events: events,
+		Events: chunk,
 	}
 
 	eventPayloadBytes, err := json.Marshal(eventPayload)
@@ -69,4 +88,19 @@ func (a *AmplitudeDestinationPlugin) Shutdown() {
 
 func isValidEvent(event *Event) bool {
 	return event.EventType != "" && event.UserID != "" && event.DeviceID != ""
+}
+
+func (a *AmplitudeDestinationPlugin) chunk(events []*Event) [][]*Event {
+	chunkNum := len(events)/a.config.FlushQueueSize + 1
+	chunks := make([][]*Event, chunkNum)
+
+	for index, _ := range chunks[:chunkNum-1] {
+		chunks[index] = make([]*Event, a.config.FlushQueueSize)
+		copy(chunks[index], events[index*a.config.FlushQueueSize:(index+1)*a.config.FlushQueueSize])
+	}
+
+	chunks[chunkNum-1] = make([]*Event, len(events)-(chunkNum-1)*a.config.FlushQueueSize)
+	copy(chunks[chunkNum-1], events[(chunkNum-1)*a.config.FlushQueueSize:])
+
+	return chunks
 }
