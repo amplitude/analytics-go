@@ -1,4 +1,3 @@
 package amplitude
 
-type Plan struct {
-}
+type Plan struct{}

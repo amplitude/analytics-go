@@ -1,4 +1,3 @@
 package amplitude
 
-type ResponseProcessor struct {
-}
+type ResponseProcessor struct{}

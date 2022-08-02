@@ -47,10 +47,10 @@ func (eo *EventOptions) setTime(time *time.Time) {
 type Event struct {
 	EventType string `json:"event_type"`
 	EventOptions
-	EventProperties map[string]interface{} `json:"event_properties,omitempty"`
-	UserProperties  map[string]interface{} `json:"user_properties,omitempty"`
-	Groups          map[string][]string    `json:"groups,omitempty"`
-	GroupProperties map[string]interface{} `json:"group_properties,omitempty"`
+	EventProperties map[string]interface{}                `json:"event_properties,omitempty"`
+	UserProperties  map[IdentityOp]map[string]interface{} `json:"user_properties,omitempty"`
+	Groups          map[string][]string                   `json:"groups,omitempty"`
+	GroupProperties map[IdentityOp]map[string]interface{} `json:"group_properties,omitempty"`
 }
 
 func (e Event) Clone() Event {

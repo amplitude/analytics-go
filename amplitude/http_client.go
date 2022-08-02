@@ -1,10 +1,7 @@
 package amplitude
 
-type HttpStatus struct {
-}
+type HttpStatus struct{}
 
-type Response struct {
-}
+type Response struct{}
 
-type HttpClient struct {
-}
+type HttpClient struct{}
