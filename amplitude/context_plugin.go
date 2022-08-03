@@ -1,8 +1,9 @@
 package amplitude
 
 import (
-	"github.com/google/uuid"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // ContextPlugin is the default enrichment plugin that add library info to event.

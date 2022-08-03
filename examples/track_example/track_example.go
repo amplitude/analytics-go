@@ -36,8 +36,12 @@ func main() {
 		Price:    9.9,
 		Quantity: 2,
 	}
-
 	client.Revenue(revenueObj, amplitude.EventOptions{UserID: "revenue-test-user-id"})
+
+	// Track user properties
+	identifyObj := amplitude.Identify{}
+	identifyObj.Set("location", "LAX")
+	client.Identify(identifyObj, amplitude.EventOptions{UserID: "identify-test-user-id"})
 
 	// Flush the event buffer
 	client.Flush()

@@ -1,4 +1,3 @@
 package amplitude
 
-type Worker struct {
-}
+type Worker struct{}

@@ -5,9 +5,9 @@ type Identify struct {
 	Properties    map[IdentityOp]map[string]interface{}
 }
 
-// isValid checks if to Identify object has Properties
+// IsValid checks if to Identify object has Properties
 // returns true if Identify object has Properties, otherwise returns false.
-func (i *Identify) isValid() bool {
+func (i *Identify) IsValid() bool {
 	return len(i.Properties) > 0
 }
 
@@ -39,23 +39,44 @@ func (i *Identify) containsOperation(op IdentityOp) bool {
 
 func (i *Identify) setUserProperty(operation IdentityOp, property string, value interface{}) {
 	if len(property) == 0 {
-		// TODO: logger
+		globalLogger.Warn("Attempting to perform operation" +
+			string(operation) +
+			" with a null or empty string property, ignoring")
+
 		return
 	}
 
-	if value == nil {
-		// TODO: logger
+	if value == nil && operation != IdentityOpClearAll {
+		globalLogger.Warn("Attempting to perform operation " +
+			string(operation) +
+			" with null value for property " +
+			property +
+			", ignoring")
+
 		return
 	}
 
 	if i.containsClearAllOperation() {
-		// TODO: logger
+		globalLogger.Warn("This Identify already contains a $clearAll operation, " +
+			"ignoring operation " + string(operation) + " for property " + property)
+
 		return
 	}
 
 	if i.containsProperty(property) {
-		// TODO: logger
+		globalLogger.Error("Already used property " +
+			property +
+			" in previous operation, ignoring operation " + string(operation))
+
 		return
+	}
+
+	if i.Properties == nil {
+		i.Properties = make(map[IdentityOp]map[string]interface{})
+	}
+
+	if i.PropertiesSet == nil {
+		i.PropertiesSet = make(map[string]bool)
 	}
 
 	if !i.containsOperation(operation) {
@@ -142,15 +163,15 @@ func (i *Identify) Remove(property string, value interface{}) *Identify {
 }
 
 // Unset removes the user property from the user profile.
-func (i *Identify) Unset(property string, value interface{}) *Identify {
-	i.setUserProperty(IdentityOpUnset, property, value)
+func (i *Identify) Unset(property string) *Identify {
+	i.setUserProperty(IdentityOpUnset, property, UnsetValue)
 
 	return i
 }
 
 // ClearAll removes all user properties of this user.
-func (i *Identify) ClearAll(property string, value interface{}) *Identify {
-	i.setUserProperty(IdentityOpClearAll, property, value)
+func (i *Identify) ClearAll() *Identify {
+	i.setUserProperty(IdentityOpClearAll, UnsetValue, nil)
 
 	return i
 }
