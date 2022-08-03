@@ -19,6 +19,10 @@ func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 	a.config = config
 }
 
+func (a *AmplitudeDestinationPlugin) Type() PluginType {
+	return DESTINATION
+}
+
 // Execute processes the event with plugins added to the destination plugin.
 // Then pushed the event to storage waiting to be sent.
 func (a *AmplitudeDestinationPlugin) Execute(event *Event) {

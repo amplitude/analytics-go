@@ -3,7 +3,7 @@ package amplitude
 type timeline struct {
 	configuration      Config
 	logger             Logger
-	enrichmentPlugins  []EnrichmentPlugin
+	enrichmentPlugins  []EventPlugin
 	destinationPlugins []DestinationPlugin
 }
 
@@ -23,9 +23,9 @@ func (t *timeline) process(event *Event) {
 func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
 	result := event
 
-	for priority := EnrichmentPriorityBefore; priority <= EnrichmentPriorityEnrichment; priority++ {
+	for pluginType := BEFORE; pluginType <= ENRICHMENT; pluginType++ {
 		for _, plugin := range t.enrichmentPlugins {
-			if plugin.Priority() == priority {
+			if plugin.Type() == pluginType {
 				result = plugin.Execute(result)
 				if result == nil {
 					return nil
@@ -48,7 +48,7 @@ func (t *timeline) add(plugin Plugin) {
 	//	TO-DO stop current thread
 
 	switch plugin := plugin.(type) {
-	case EnrichmentPlugin:
+	case EventPlugin:
 		t.enrichmentPlugins = append(t.enrichmentPlugins, plugin)
 	case DestinationPlugin:
 		t.destinationPlugins = append(t.destinationPlugins, plugin)
@@ -59,7 +59,7 @@ func (t *timeline) add(plugin Plugin) {
 
 func (t *timeline) remove(plugin Plugin) {
 	switch plugin := plugin.(type) {
-	case EnrichmentPlugin:
+	case EventPlugin:
 		for i, p := range t.enrichmentPlugins {
 			if p == plugin {
 				t.enrichmentPlugins = append(t.enrichmentPlugins[:i], t.enrichmentPlugins[i+1:]...)

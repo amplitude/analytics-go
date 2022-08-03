@@ -21,8 +21,8 @@ func NewContextPlugin() *ContextPlugin {
 func (c *ContextPlugin) Setup(config Config) {
 }
 
-func (c *ContextPlugin) Priority() EnrichmentPriority {
-	return EnrichmentPriorityBefore
+func (c *ContextPlugin) Type() PluginType {
+	return ENRICHMENT
 }
 
 // Execute sets default timestamp and insertID if not set elsewhere
