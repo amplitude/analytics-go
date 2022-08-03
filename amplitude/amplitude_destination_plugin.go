@@ -13,17 +13,56 @@ type payload struct {
 	Events []*Event `json:"events"`
 }
 
+type eventType byte
+
+const (
+	flushEvent eventType = iota
+	userEvent
+)
+
+type destinationEvent struct {
+	eventType
+	event *Event
+	wg    *sync.WaitGroup
+}
+
 type AmplitudeDestinationPlugin struct {
-	config        Config
-	scheduled     bool
-	storage       chan *Event
-	sendWaitGroup sync.WaitGroup
+	config       Config
+	storage      *InMemoryStorage
+	eventChannel chan destinationEvent
 }
 
 func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 	a.config = config
-	a.scheduled = false
-	a.storage = make(chan *Event, a.config.FlushQueueSize)
+	a.storage = &InMemoryStorage{}
+	a.eventChannel = make(chan destinationEvent, a.config.FlushQueueSize*10)
+	autoFlushTicker := time.NewTicker(a.config.FlushInterval)
+	defer autoFlushTicker.Stop()
+
+	go func() {
+	Loop:
+		for {
+			select {
+			case <-autoFlushTicker.C:
+				a.flush(nil)
+			case event, ok := <-a.eventChannel:
+				a.config.Logger.Debug("Event received from eventChannel: ", event, event.event)
+				if !ok {
+					a.flush(nil)
+					break Loop
+				}
+				if event.eventType == flushEvent {
+					a.flush(event.wg)
+				} else {
+					if a.storage.Len() >= a.config.FlushQueueSize {
+						a.flush(nil)
+					}
+					a.storage.Push(event.event)
+				}
+			}
+
+		}
+	}()
 }
 
 // Execute processes the event with plugins added to the destination plugin.
@@ -33,37 +72,41 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 		a.config.Logger.Error("Invalid event, EventType, UserID, and DeviceID cannot be empty.", event)
 	}
 
-	if len(a.storage) == a.config.FlushQueueSize {
-		a.Flush()
+	if a.eventChannel == nil {
+		return
 	}
 
-	a.storage <- event
+	//a.config.Logger.Debug("Event tracked: ", event)
 
-	if !a.scheduled {
-		time.AfterFunc(a.config.FlushInterval, func() { a.Flush() })
+	a.eventChannel <- destinationEvent{
+		eventType: userEvent,
+		event:     event,
 	}
 }
 
 func (a *AmplitudeDestinationPlugin) Flush() {
-	if len(a.storage) == 0 {
-		return
+	var wg sync.WaitGroup
+	wg.Add(1)
+	a.eventChannel <- destinationEvent{
+		eventType: flushEvent,
+		event:     nil,
+		wg:        &wg,
 	}
-
-	events := make([]*Event, len(a.storage))
-	currentStorageSize := len(a.storage)
-
-	for i := 0; i < currentStorageSize; i++ {
-		events[i] = <-a.storage
-	}
-
-	a.sendWaitGroup.Add(1)
-
-	go a.send(events)
-
-	a.scheduled = false
+	wg.Wait()
 }
 
-func (a *AmplitudeDestinationPlugin) send(chunk []*Event) {
+func (a *AmplitudeDestinationPlugin) flush(wg *sync.WaitGroup) {
+	if wg != nil {
+		defer wg.Done()
+	}
+	events := a.storage.Pull()
+	chunks := a.chunk(events)
+	for _, chunk := range chunks {
+		a.sendChunk(chunk)
+	}
+}
+
+func (a *AmplitudeDestinationPlugin) sendChunk(chunk []*Event) {
 	eventPayload := &payload{
 		APIKey: a.config.APIKey,
 		Events: chunk,
@@ -87,21 +130,17 @@ func (a *AmplitudeDestinationPlugin) send(chunk []*Event) {
 	httpClient := &http.Client{}
 
 	response, err := httpClient.Do(request)
+	defer response.Body.Close()
 	if err != nil {
 		a.config.Logger.Error("HTTP request failed", err)
 	}
 
 	a.config.Logger.Info("HTTP request response", response)
-
-	defer func() {
-		response.Body.Close()
-		a.sendWaitGroup.Done()
-	}()
 }
 
 func (a *AmplitudeDestinationPlugin) Shutdown() {
 	a.Flush()
-	a.sendWaitGroup.Wait()
+	close(a.eventChannel)
 }
 
 func isValidEvent(event *Event) bool {
