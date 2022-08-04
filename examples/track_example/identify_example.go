@@ -9,7 +9,7 @@ import (
 
 func main() {
 
-	config := amplitude.NewConfig("your_api_key")
+	config := amplitude.NewConfig("your-api-key")
 
 	client := amplitude.NewClient(config)
 
