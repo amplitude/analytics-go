@@ -86,6 +86,7 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 
 func (a *AmplitudeDestinationPlugin) Flush() {
 	var flushWaitGroup sync.WaitGroup
+
 	flushWaitGroup.Add(1)
 
 	a.eventChannel <- destinationEvent{

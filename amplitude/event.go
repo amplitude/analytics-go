@@ -3,7 +3,6 @@ package amplitude
 import "time"
 
 type EventOptions struct {
-
 	UserID             string  `json:"user_id,omitempty"`
 	DeviceID           string  `json:"device_id,omitempty"`
 	Time               int64   `json:"time,omitempty"`
@@ -45,13 +44,17 @@ func (eo *EventOptions) SetTime(time *time.Time) {
 	eo.Time = time.UnixMilli()
 }
 
+func (eo *EventOptions) setTime(time *time.Time) {
+	eo.Time = time.UnixMilli()
+}
+
 type Event struct {
 	EventType string `json:"event_type"`
 	EventOptions
-	EventProperties map[string]interface{} `json:"event_properties,omitempty"`
-	UserProperties  map[string]interface{} `json:"user_properties,omitempty"`
-	Groups          map[string][]string    `json:"groups,omitempty"`
-	GroupProperties map[string]interface{} `json:"group_properties,omitempty"`
+	EventProperties map[string]interface{}                `json:"event_properties,omitempty"`
+	UserProperties  map[IdentityOp]map[string]interface{} `json:"user_properties,omitempty"`
+	Groups          map[string][]string                   `json:"groups,omitempty"`
+	GroupProperties map[IdentityOp]map[string]interface{} `json:"group_properties,omitempty"`
 }
 
 func (e Event) Clone() Event {

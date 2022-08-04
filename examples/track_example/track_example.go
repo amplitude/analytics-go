@@ -4,7 +4,6 @@ package main
 
 // Import amplitude package
 import (
-	"fmt"
 	"github.com/amplitude/Amplitude-Go/amplitude"
 )
 
@@ -16,39 +15,25 @@ func callbackFunc(e string, code int, message string) {
 
 func main() {
 
-	config := amplitude.NewConfig("your-api-key")
-	config.FlushQueueSize = 3
+	config := amplitude.NewConfig("your_api_key")
 
 	// Config callback function (optional)
 	client := amplitude.NewClient(config)
 
 	client.Add(amplitude.NewContextPlugin())
 
-	// Create and track events
-	for i := 0; i < 10; i++ {
-		event := amplitude.Event{
-			EventType: "go-event-type",
-			EventOptions: amplitude.EventOptions{
-				UserID:   "go-user-id-" + fmt.Sprint(i),
-				DeviceID: "go-device-id-" + fmt.Sprint(i),
-			},
-		}
-		client.Track(event)
+	// Create a BaseEvent instance
+	event := amplitude.Event{
+		EventOptions: amplitude.EventOptions{DeviceID: "go-device-id", UserID: "go-user-id"},
+		EventType:    "go-event-type",
 	}
+
+	// Track an event
+	client.Track(event)
 
 	// Flush the event buffer
 	client.Flush()
 
-	for i := 10; i < 20; i++ {
-		event := amplitude.Event{
-			EventType: "go-event-type",
-			EventOptions: amplitude.EventOptions{
-				UserID:   "go-user-id-" + fmt.Sprint(i),
-				DeviceID: "go-device-id-" + fmt.Sprint(i),
-			},
-		}
-		client.Track(event)
-	}
 	// Shutdown the client
 	client.Shutdown()
 }
