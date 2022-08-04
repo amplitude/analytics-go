@@ -15,7 +15,7 @@ func (c App) Index() revel.Result {
 }
 
 func (c App) Analytics() revel.Result {
-	config := amplitude.NewConfig("c253b75dce3e593c44ea5eb95999f92a")
+	config := amplitude.NewConfig("your-api-key")
 	client := amplitude.NewClient(config)
 	defer client.Shutdown()
 
