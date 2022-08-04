@@ -11,7 +11,6 @@ func main() {
 
 	config := amplitude.NewConfig("your_api_key")
 
-	// Config callback function (optional)
 	client := amplitude.NewClient(config)
 
 	// Identify struct provides controls over setting user properties.
@@ -25,7 +24,7 @@ func main() {
 
 	// Create a BaseEvent instance
 	event := amplitude.Event{
-		EventOptions: amplitude.EventOptions{DeviceID: "go-device-id", UserID: "identify-user-id"},
+		EventOptions: amplitude.EventOptions{DeviceID: "identify-device-id", UserID: "identify-user-id"},
 		EventType:    "identify-event-type",
 	}
 
