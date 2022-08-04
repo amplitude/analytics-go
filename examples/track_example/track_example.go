@@ -20,8 +20,6 @@ func main() {
 	// Config callback function (optional)
 	client := amplitude.NewClient(config)
 
-	client.Add(amplitude.NewContextPlugin())
-
 	// Create a BaseEvent instance
 	event := amplitude.Event{
 		EventOptions: amplitude.EventOptions{DeviceID: "go-device-id", UserID: "go-user-id"},
