@@ -16,7 +16,7 @@ type Client interface {
 func NewClient(config Config) Client {
 	client := &client{configuration: config}
 	client.Add(&AmplitudeDestinationPlugin{})
-	client.Add(&ContextPlugin{})
+	client.Add(NewContextPlugin())
 
 	return client
 }
