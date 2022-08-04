@@ -12,7 +12,6 @@ func TestChunk(t *testing.T) {
 		config: Config{
 			FlushQueueSize: 3,
 		},
-		scheduled: false,
 	}
 
 	events := make([]*Event, 10)

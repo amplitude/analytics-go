@@ -18,6 +18,7 @@ type eventType byte
 const (
 	flushEvent eventType = iota
 	userEvent
+	flushQueueSizeFactor = 10
 )
 
 type destinationEvent struct {
@@ -35,7 +36,8 @@ type AmplitudeDestinationPlugin struct {
 func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 	a.config = config
 	a.storage = &InMemoryStorage{}
-	a.eventChannel = make(chan destinationEvent, a.config.FlushQueueSize*10)
+	a.eventChannel = make(chan destinationEvent, a.config.FlushQueueSize*flushQueueSizeFactor)
+
 	autoFlushTicker := time.NewTicker(a.config.FlushInterval)
 	defer autoFlushTicker.Stop()
 
@@ -49,6 +51,7 @@ func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 				a.config.Logger.Debug("Event received from eventChannel: ", event, event.event)
 				if !ok {
 					a.flush(nil)
+
 					break Loop
 				}
 				if event.eventType == flushEvent {
@@ -60,7 +63,6 @@ func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 					a.storage.Push(event.event)
 				}
 			}
-
 		}
 	}()
 }
@@ -76,8 +78,6 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 		return
 	}
 
-	//a.config.Logger.Debug("Event tracked: ", event)
-
 	a.eventChannel <- destinationEvent{
 		eventType: userEvent,
 		event:     event,
@@ -85,21 +85,25 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 }
 
 func (a *AmplitudeDestinationPlugin) Flush() {
-	var wg sync.WaitGroup
-	wg.Add(1)
+	var flushWaitGroup sync.WaitGroup
+	flushWaitGroup.Add(1)
+
 	a.eventChannel <- destinationEvent{
 		eventType: flushEvent,
 		event:     nil,
-		wg:        &wg,
+		wg:        &flushWaitGroup,
 	}
-	wg.Wait()
+
+	flushWaitGroup.Wait()
 }
 
 func (a *AmplitudeDestinationPlugin) flush(wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
+
 	events := a.storage.Pull()
+
 	chunks := a.chunk(events)
 	for _, chunk := range chunks {
 		a.sendChunk(chunk)
@@ -130,10 +134,10 @@ func (a *AmplitudeDestinationPlugin) sendChunk(chunk []*Event) {
 	httpClient := &http.Client{}
 
 	response, err := httpClient.Do(request)
-	defer response.Body.Close()
 	if err != nil {
 		a.config.Logger.Error("HTTP request failed", err)
 	}
+	defer response.Body.Close()
 
 	a.config.Logger.Info("HTTP request response", response)
 }

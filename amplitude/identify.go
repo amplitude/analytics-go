@@ -12,5 +12,4 @@ func (i Identify) IsValid() bool {
 }
 
 func (i Identify) Set(key string, value interface{}) {
-
 }
