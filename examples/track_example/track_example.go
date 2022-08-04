@@ -15,21 +15,28 @@ func callbackFunc(e string, code int, message string) {
 
 func main() {
 
-	config := amplitude.NewConfig("your_api_key")
+	config := amplitude.NewConfig("your-api-key")
 
 	// Config callback function (optional)
 	client := amplitude.NewClient(config)
 
-	client.Add(amplitude.NewContextPlugin())
-
-	// Create a BaseEvent instance
+	// Track a basic event
+	// One of UserID and DeviceID is required
 	event := amplitude.Event{
-		EventOptions: amplitude.EventOptions{DeviceID: "go-device-id", UserID: "go-user-id"},
-		EventType:    "go-event-type",
+		EventOptions: amplitude.EventOptions{UserID: "user-id"},
+		EventType:    "Button Clicked",
 	}
-
-	// Track an event
 	client.Track(event)
+
+	// Track events with optional properties
+	client.Track(amplitude.Event{
+		EventType: "type-of-event",
+		EventOptions: amplitude.EventOptions{
+			UserID:   "user-id",
+			DeviceID: "device-id",
+		},
+		EventProperties: map[string]interface{}{"source": "notification"},
+	})
 
 	// Flush the event buffer
 	client.Flush()
