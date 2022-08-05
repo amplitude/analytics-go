@@ -34,7 +34,9 @@ jobs:
         with:
           go-version: '1.17'
           check-latest: true
-      - run: go test -v -cover
+      - run: |
+          cd amplitude
+          go test -v -cover
   build:
     name: Build binary
     runs-on: 'ubuntu-latest'
