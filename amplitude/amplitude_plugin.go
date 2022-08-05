@@ -5,10 +5,6 @@ import (
 	"time"
 )
 
-const (
-	flushQueueSizeFactor = 10
-)
-
 type message struct {
 	event *Event
 	wg    *sync.WaitGroup
@@ -37,11 +33,13 @@ func (a *AmplitudePlugin) Setup(config Config) {
 				a.sendEventsFromStorage(nil)
 			case message, ok := <-a.messageChannel:
 				a.config.Logger.Debug("Message received from messageChannel: ", message, message.event)
+
 				if !ok {
 					a.sendEventsFromStorage(nil)
 
 					return
 				}
+
 				if message.wg != nil {
 					a.sendEventsFromStorage(message.wg)
 				} else {

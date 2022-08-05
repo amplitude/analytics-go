@@ -8,7 +8,7 @@ import (
 )
 
 func TestChunk(t *testing.T) {
-	amplitudeDestinationPlugin := AmplitudeDestinationPlugin{
+	amplitudeDestinationPlugin := AmplitudePlugin{
 		config: Config{
 			FlushQueueSize: 3,
 		},
