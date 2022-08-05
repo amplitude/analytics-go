@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"net/http"
+	"time"
 )
 
 type payload struct {
@@ -36,7 +37,9 @@ func (h *httpClient) send(p payload) {
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "*/*")
 
-	httpClient := &http.Client{}
+	httpClient := &http.Client{
+		Timeout: time.Second * 10,
+	}
 
 	response, err := httpClient.Do(request)
 	if err != nil {
