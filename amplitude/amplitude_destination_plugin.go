@@ -5,16 +5,11 @@ import (
 	"time"
 )
 
-type messageType byte
-
 const (
-	flushMessage messageType = iota
-	eventMessage
 	flushQueueSizeFactor = 10
 )
 
 type message struct {
-	messageType
 	event *Event
 	wg    *sync.WaitGroup
 }
@@ -48,7 +43,7 @@ func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 
 					break Loop
 				}
-				if message.messageType == flushMessage {
+				if message.wg != nil {
 					a.sendEventsFromStorage(message.wg)
 				} else {
 					a.storage.Push(message.event)
@@ -74,8 +69,8 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 	}
 
 	a.messageChannel <- message{
-		messageType: eventMessage,
-		event:       event,
+		event: event,
+		wg:    nil,
 	}
 }
 
@@ -85,9 +80,8 @@ func (a *AmplitudeDestinationPlugin) Flush() {
 	flushWaitGroup.Add(1)
 
 	a.messageChannel <- message{
-		messageType: flushMessage,
-		event:       nil,
-		wg:          &flushWaitGroup,
+		event: nil,
+		wg:    &flushWaitGroup,
 	}
 
 	flushWaitGroup.Wait()
