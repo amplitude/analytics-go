@@ -12,14 +12,14 @@ type message struct {
 
 type AmplitudePlugin struct {
 	config         Config
-	storage        *InMemoryStorage
+	storage        Storage
 	messageChannel chan message
 	httpClient     httpClient
 }
 
 func (a *AmplitudePlugin) Setup(config Config) {
 	a.config = config
-	a.storage = &InMemoryStorage{}
+	a.storage = config.Storage
 	a.messageChannel = make(chan message, MaxBufferCapacity)
 	a.httpClient = httpClient{logger: config.Logger, serverURL: config.ServerURL}
 
