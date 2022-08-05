@@ -17,6 +17,10 @@ type httpClient struct {
 }
 
 func (h *httpClient) send(p payload) {
+	if len(p.Events) == 0 {
+		return
+	}
+
 	payloadBytes, err := json.Marshal(p)
 	if err != nil {
 		h.logger.Error("payload encoding failed", err)
