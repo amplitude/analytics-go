@@ -108,6 +108,7 @@ jobs:
           echo "GOARCH=$GOARCH" >> $GITHUB_ENV
       - name: Build
         run: |
+          cd amplitude
           go build -o "$BINARY_NAME" -v
       - name: Release Notes
         run: |
