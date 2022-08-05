@@ -45,9 +45,7 @@ jobs:
       matrix:
         goosarch:
           - 'aix/ppc64'
-          # - 'android/386'
           - 'android/amd64'
-          # - 'android/arm'
           - 'android/arm64'
           - 'darwin/amd64'
           - 'darwin/arm64'
@@ -57,8 +55,6 @@ jobs:
           - 'freebsd/arm'
           - 'freebsd/arm64'
           - 'illumos/amd64'
-          # - 'ios/amd64'
-          # - 'ios/arm64'
           - 'js/wasm'
           - 'linux/386'
           - 'linux/amd64'
