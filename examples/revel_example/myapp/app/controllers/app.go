@@ -10,11 +10,11 @@ type App struct {
 }
 
 type payload struct {
-	eventType      string                                          `json:"event_type"`
-	userProperties map[amplitude.IdentityOp]map[string]interface{} `json:"user_properties,omitempty"`
-	deviceID       string                                          `json:"device_id,omitempty"`
-	userID         string                                          `json:"user_id,omitempty"`
-	sessionID      int                                             `json:"session_id,omitempty"`
+	EventType      string                                          `json:"event_type"`
+	UserProperties map[amplitude.IdentityOp]map[string]interface{} `json:"user_properties,omitempty"`
+	DeviceID       string                                          `json:"device_id,omitempty"`
+	UserID         string                                          `json:"user_id,omitempty"`
+	SessionID      int                                             `json:"session_id,omitempty"`
 }
 
 func (c App) Index() revel.Result {
@@ -22,21 +22,23 @@ func (c App) Index() revel.Result {
 }
 
 func (c App) Analytics() revel.Result {
-	config := amplitude.NewConfig("your-api-key")
+	config := amplitude.NewConfig("c253b75dce3e593c44ea5eb95999f92a")
 	client := amplitude.NewClient(config)
 	defer client.Shutdown()
 
-	var jsonData payload
+	jsonData := payload{}
+	//config.Logger.Debug("string(c.Params.JSON): ", string(c.Params.JSON))
 	c.Params.BindJSON(&jsonData)
+	//config.Logger.Debug("jsonData: ", jsonData)
 
 	event := amplitude.Event{
 		EventOptions: amplitude.EventOptions{
-			UserID:    jsonData.userID,
-			DeviceID:  jsonData.deviceID,
-			SessionID: jsonData.sessionID,
+			UserID:    jsonData.UserID,
+			DeviceID:  jsonData.DeviceID,
+			SessionID: jsonData.SessionID,
 		},
-		EventType:      jsonData.eventType,
-		UserProperties: jsonData.userProperties,
+		EventType:      jsonData.EventType,
+		UserProperties: jsonData.UserProperties,
 	}
 	client.Track(event)
 
