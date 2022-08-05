@@ -4,6 +4,8 @@ package main
 
 // Import amplitude package
 import (
+	"time"
+
 	"github.com/amplitude/Amplitude-Go/amplitude"
 )
 
@@ -26,6 +28,8 @@ func main() {
 		EventOptions: amplitude.EventOptions{UserID: "user-id"},
 		EventType:    "Button Clicked",
 	}
+	// Set time of event
+	event.SetTime(time.Now())
 	client.Track(event)
 
 	// Track events with optional properties

@@ -15,7 +15,7 @@ func (i *InMemoryStorage) Push(event *Event) {
 	i.eventsBuffer = append(i.eventsBuffer, event)
 }
 
-// Pull returns all events in default InMemoryStorage and empties InMemoryStorage.
+// Pull returns all Events in default InMemoryStorage and empties InMemoryStorage.
 func (i *InMemoryStorage) Pull() []*Event {
 	events := i.eventsBuffer
 	i.eventsBuffer = i.eventsBuffer[:0]
