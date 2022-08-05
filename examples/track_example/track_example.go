@@ -5,6 +5,7 @@ package main
 // Import amplitude package
 import (
 	"github.com/amplitude/Amplitude-Go/amplitude"
+	"time"
 )
 
 // Define your callback function (optional)
@@ -15,31 +16,30 @@ func callbackFunc(e string, code int, message string) {
 
 func main() {
 
-	config := amplitude.NewConfig("your_api_key")
+	config := amplitude.NewConfig("your-api-key")
 
 	// Config callback function (optional)
 	client := amplitude.NewClient(config)
 
-	// Create a BaseEvent instance
+	// Track a basic event
+	// One of UserID and DeviceID is required
 	event := amplitude.Event{
-		EventOptions: amplitude.EventOptions{DeviceID: "go-device-id", UserID: "go-user-id"},
-		EventType:    "go-event-type",
+		EventOptions: amplitude.EventOptions{UserID: "user-id"},
+		EventType:    "Button Clicked",
 	}
-
-	// Track an event
+	// Set time of event
+	event.SetTime(time.Now())
 	client.Track(event)
 
-	// Revenue Tracking
-	revenueObj := amplitude.Revenue{
-		Price:    9.9,
-		Quantity: 2,
-	}
-	client.Revenue(revenueObj, amplitude.EventOptions{UserID: "revenue-test-user-id"})
-
-	// Track user properties
-	identifyObj := amplitude.Identify{}
-	identifyObj.Set("location", "LAX")
-	client.Identify(identifyObj, amplitude.EventOptions{UserID: "identify-test-user-id"})
+	// Track events with optional properties
+	client.Track(amplitude.Event{
+		EventType: "type-of-event",
+		EventOptions: amplitude.EventOptions{
+			UserID:   "user-id",
+			DeviceID: "device-id",
+		},
+		EventProperties: map[string]interface{}{"source": "notification"},
+	})
 
 	// Flush the event buffer
 	client.Flush()

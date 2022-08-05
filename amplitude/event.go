@@ -3,8 +3,8 @@ package amplitude
 import "time"
 
 type EventOptions struct {
-	UserID             string  `json:"user_id"`
-	DeviceID           string  `json:"device_id"`
+	UserID             string  `json:"user_id,omitempty"`
+	DeviceID           string  `json:"device_id,omitempty"`
 	Time               int64   `json:"time,omitempty"`
 	InsertID           string  `json:"insert_id,omitempty"`
 	Library            string  `json:"library,omitempty"`
@@ -37,10 +37,10 @@ type EventOptions struct {
 	EventID            int     `json:"event_id,omitempty"`
 	SessionID          int     `json:"session_id,omitempty"`
 	PartnerID          string  `json:"partner_id,omitempty"`
-	Plan               Plan
+	Plan               Plan    `json:"plan,omitempty"`
 }
 
-func (eo *EventOptions) setTime(time *time.Time) {
+func (eo *EventOptions) SetTime(time time.Time) {
 	eo.Time = time.UnixMilli()
 }
 
