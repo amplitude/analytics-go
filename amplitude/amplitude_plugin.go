@@ -14,14 +14,14 @@ type message struct {
 	wg    *sync.WaitGroup
 }
 
-type AmplitudeDestinationPlugin struct {
+type AmplitudePlugin struct {
 	config         Config
 	storage        *InMemoryStorage
 	messageChannel chan message
 	httpClient     httpClient
 }
 
-func (a *AmplitudeDestinationPlugin) Setup(config Config) {
+func (a *AmplitudePlugin) Setup(config Config) {
 	a.config = config
 	a.storage = &InMemoryStorage{}
 	a.messageChannel = make(chan message, a.config.FlushQueueSize*flushQueueSizeFactor)
@@ -59,7 +59,7 @@ func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 
 // Execute processes the event with plugins added to the destination plugin.
 // Then pushed the event to storage waiting to be sent.
-func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
+func (a *AmplitudePlugin) Execute(event *Event) {
 	if !isValidEvent(event) {
 		a.config.Logger.Error("Invalid event, EventType and either UserID or DeviceID cannot be empty.", event)
 	}
@@ -74,7 +74,7 @@ func (a *AmplitudeDestinationPlugin) Execute(event *Event) {
 	}
 }
 
-func (a *AmplitudeDestinationPlugin) Flush() {
+func (a *AmplitudePlugin) Flush() {
 	var flushWaitGroup sync.WaitGroup
 
 	flushWaitGroup.Add(1)
@@ -87,7 +87,7 @@ func (a *AmplitudeDestinationPlugin) Flush() {
 	flushWaitGroup.Wait()
 }
 
-func (a *AmplitudeDestinationPlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
+func (a *AmplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
@@ -103,7 +103,7 @@ func (a *AmplitudeDestinationPlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 	}
 }
 
-func (a *AmplitudeDestinationPlugin) Shutdown() {
+func (a *AmplitudePlugin) Shutdown() {
 	a.Flush()
 	close(a.messageChannel)
 }
@@ -112,7 +112,7 @@ func isValidEvent(event *Event) bool {
 	return event.EventType != "" && (event.UserID != "" || event.DeviceID != "")
 }
 
-func (a *AmplitudeDestinationPlugin) chunk(events []*Event) [][]*Event {
+func (a *AmplitudePlugin) chunk(events []*Event) [][]*Event {
 	chunkNum := len(events)/a.config.FlushQueueSize + 1
 	chunks := make([][]*Event, chunkNum)
 
