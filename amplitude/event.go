@@ -40,11 +40,7 @@ type EventOptions struct {
 	Plan               Plan    `json:"plan,omitempty"`
 }
 
-func (eo *EventOptions) SetTime(time *time.Time) {
-	eo.Time = time.UnixMilli()
-}
-
-func (eo *EventOptions) setTime(time *time.Time) {
+func (eo *EventOptions) SetTime(time time.Time) {
 	eo.Time = time.UnixMilli()
 }
 
