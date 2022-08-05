@@ -1,17 +1,9 @@
 package amplitude
 
 import (
-	"bytes"
-	"encoding/json"
-	"net/http"
 	"sync"
 	"time"
 )
-
-type payload struct {
-	APIKey string   `json:"api_key"`
-	Events []*Event `json:"events"`
-}
 
 type messageType byte
 
@@ -31,12 +23,14 @@ type AmplitudeDestinationPlugin struct {
 	config         Config
 	storage        *InMemoryStorage
 	messageChannel chan message
+	httpClient     httpClient
 }
 
 func (a *AmplitudeDestinationPlugin) Setup(config Config) {
 	a.config = config
 	a.storage = &InMemoryStorage{}
 	a.messageChannel = make(chan message, a.config.FlushQueueSize*flushQueueSizeFactor)
+	a.httpClient = httpClient{logger: config.Logger, serverURL: config.ServerURL}
 
 	autoFlushTicker := time.NewTicker(a.config.FlushInterval)
 	defer autoFlushTicker.Stop()
@@ -108,40 +102,11 @@ func (a *AmplitudeDestinationPlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 
 	chunks := a.chunk(events)
 	for _, chunk := range chunks {
-		a.sendHTTPRequest(chunk)
+		a.httpClient.send(payload{
+			APIKey: a.config.APIKey,
+			Events: chunk,
+		})
 	}
-}
-
-func (a *AmplitudeDestinationPlugin) sendHTTPRequest(chunk []*Event) {
-	eventPayload := &payload{
-		APIKey: a.config.APIKey,
-		Events: chunk,
-	}
-
-	eventPayloadBytes, err := json.Marshal(eventPayload)
-	if err != nil {
-		a.config.Logger.Error("Events encoding failed", err)
-	}
-
-	a.config.Logger.Debug("eventPayloadBytes: ", string(eventPayloadBytes))
-
-	request, err := http.NewRequest("POST", a.config.ServerURL, bytes.NewReader(eventPayloadBytes))
-	if err != nil {
-		a.config.Logger.Error("Building new request failed", err)
-	}
-
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Accept", "*/*")
-
-	httpClient := &http.Client{}
-
-	response, err := httpClient.Do(request)
-	if err != nil {
-		a.config.Logger.Error("HTTP request failed", err)
-	}
-	defer response.Body.Close()
-
-	a.config.Logger.Info("HTTP request response", response)
 }
 
 func (a *AmplitudeDestinationPlugin) Shutdown() {
