@@ -24,7 +24,7 @@ type AmplitudePlugin struct {
 func (a *AmplitudePlugin) Setup(config Config) {
 	a.config = config
 	a.storage = &InMemoryStorage{}
-	a.messageChannel = make(chan message, a.config.FlushQueueSize*flushQueueSizeFactor)
+	a.messageChannel = make(chan message, MaxBufferCapacity)
 	a.httpClient = httpClient{logger: config.Logger, serverURL: config.ServerURL}
 
 	autoFlushTicker := time.NewTicker(a.config.FlushInterval)
