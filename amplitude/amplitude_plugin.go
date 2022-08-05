@@ -90,14 +90,10 @@ func (a *AmplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 	}
 
 	events := a.storage.Pull()
-
-	chunks := a.chunk(events)
-	for _, chunk := range chunks {
-		a.httpClient.send(payload{
-			APIKey: a.config.APIKey,
-			Events: chunk,
-		})
-	}
+	a.httpClient.send(payload{
+		APIKey: a.config.APIKey,
+		Events: events,
+	})
 }
 
 func (a *AmplitudePlugin) Shutdown() {
