@@ -113,6 +113,10 @@ func isValidEvent(event *Event) bool {
 }
 
 func (a *AmplitudePlugin) chunk(events []*Event) [][]*Event {
+	if len(events) == 0 {
+		return nil
+	}
+
 	chunkNum := len(events)/a.config.FlushQueueSize + 1
 	chunks := make([][]*Event, chunkNum)
 
