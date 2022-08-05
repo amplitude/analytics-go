@@ -31,7 +31,6 @@ func (a *AmplitudePlugin) Setup(config Config) {
 	defer autoFlushTicker.Stop()
 
 	go func() {
-	Loop:
 		for {
 			select {
 			case <-autoFlushTicker.C:
@@ -41,7 +40,7 @@ func (a *AmplitudePlugin) Setup(config Config) {
 				if !ok {
 					a.sendEventsFromStorage(nil)
 
-					break Loop
+					return
 				}
 				if message.wg != nil {
 					a.sendEventsFromStorage(message.wg)
