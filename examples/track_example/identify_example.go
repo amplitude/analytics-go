@@ -20,15 +20,16 @@ func main() {
 	identifyObj.Set("location", "LAX")
 
 	// Call Identify method of client
+	// Event here will not display in your Amplitude Analytics
 	client.Identify(identifyObj, amplitude.EventOptions{UserID: "identify-user-id"})
 
-	// Create a BaseEvent instance
+	// To see identify actually works
+	// Let's track another event
+	// Then you can see that user properties of this event has location set to LAX
 	event := amplitude.Event{
 		EventOptions: amplitude.EventOptions{DeviceID: "identify-device-id", UserID: "identify-user-id"},
 		EventType:    "identify-event-type",
 	}
-
-	// Track an event
 	client.Track(event)
 
 	// Flush the event buffer
