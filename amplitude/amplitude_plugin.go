@@ -17,6 +17,10 @@ type AmplitudePlugin struct {
 	httpClient     httpClient
 }
 
+func (a *AmplitudePlugin) Type() PluginType {
+	return DESTINATION
+}
+
 func (a *AmplitudePlugin) Setup(config Config) {
 	a.config = config
 	a.storage = config.Storage

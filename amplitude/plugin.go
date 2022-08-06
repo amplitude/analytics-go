@@ -1,19 +1,12 @@
 package amplitude
 
-type EnrichmentPriority byte
-
-const (
-	EnrichmentPriorityBefore EnrichmentPriority = iota
-	EnrichmentPriorityEnrichment
-)
-
 type Plugin interface {
 	Setup(config Config)
+	Type() PluginType
 }
 
 type EnrichmentPlugin interface {
 	Plugin
-	Priority() EnrichmentPriority
 	Execute(event *Event) *Event
 }
 
