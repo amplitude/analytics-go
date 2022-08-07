@@ -13,6 +13,10 @@ type EnrichmentPlugin interface {
 type DestinationPlugin interface {
 	Plugin
 	Execute(event *Event)
+}
+
+type ExtendedDestinationPlugin interface {
+	DestinationPlugin
 	Flush()
 	Shutdown()
 }

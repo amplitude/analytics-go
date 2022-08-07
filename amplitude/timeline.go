@@ -78,12 +78,16 @@ func (t *timeline) remove(plugin Plugin) {
 
 func (t *timeline) flush() {
 	for _, plugin := range t.destinationPlugins {
-		plugin.Flush()
+		if plugin, ok := plugin.(ExtendedDestinationPlugin); ok {
+			plugin.Flush()
+		}
 	}
 }
 
 func (t *timeline) shutdown() {
 	for _, plugin := range t.destinationPlugins {
-		plugin.Shutdown()
+		if plugin, ok := plugin.(ExtendedDestinationPlugin); ok {
+			plugin.Shutdown()
+		}
 	}
 }
