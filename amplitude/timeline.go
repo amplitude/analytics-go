@@ -23,9 +23,9 @@ func (t *timeline) process(event *Event) {
 func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
 	result := event
 
-	for type := BEFORE; type <= ENRICHMENT; type++ {
+	for pluginType := BEFORE; pluginType <= ENRICHMENT; pluginType++ {
 		for _, plugin := range t.enrichmentPlugins {
-			if plugin.Type() == type {
+			if plugin.Type() == pluginType {
 				result = plugin.Execute(result)
 				if result == nil {
 					return nil
