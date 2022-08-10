@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/amplitude/Amplitude-Go/amplitude"
 	"github.com/revel/revel"
+	"myapp/app"
 )
 
 type App struct {
@@ -22,10 +23,6 @@ func (c App) Index() revel.Result {
 }
 
 func (c App) Analytics() revel.Result {
-	config := amplitude.NewConfig("your-api-key")
-	client := amplitude.NewClient(config)
-	defer client.Shutdown()
-
 	jsonData := payload{}
 	//config.Logger.Debug("string(c.Params.JSON): ", string(c.Params.JSON))
 	c.Params.BindJSON(&jsonData)
@@ -40,7 +37,7 @@ func (c App) Analytics() revel.Result {
 		EventType:      jsonData.EventType,
 		UserProperties: jsonData.UserProperties,
 	}
-	client.Track(event)
+	app.Client.Track(event)
 
 	return c.Render()
 }

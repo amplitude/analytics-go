@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/amplitude/Amplitude-Go/amplitude"
 	_ "github.com/revel/modules"
 	"github.com/revel/revel"
 )
@@ -11,7 +12,14 @@ var (
 
 	// BuildTime revel app build-time (ldflags)
 	BuildTime string
+
+	Client amplitude.Client
 )
+
+func InitAmplitude() {
+	Config := amplitude.NewConfig("your-api-key")
+	Client = amplitude.NewClient(Config)
+}
 
 func init() {
 	// Filters is the default set of global filters.
@@ -37,6 +45,7 @@ func init() {
 	// revel.OnAppStart(ExampleStartupScript)
 	// revel.OnAppStart(InitDB)
 	// revel.OnAppStart(FillCache)
+	revel.OnAppStart(InitAmplitude)
 }
 
 // HeaderFilter adds common security headers
