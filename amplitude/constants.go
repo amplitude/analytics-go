@@ -10,7 +10,7 @@ type IdentityOp string
 
 const (
 	SdkLibrary = "amplitude-go"
-	SdkVersion = "0.0.1"
+	SdkVersion = "0.0.0"
 
 	ServerZoneEU = "EU"
 	ServerZoneUS = "US"
