@@ -1,4 +1,4 @@
-module github.com/amplitude/Amplitude-Go
+module github.com/amplitude/analytics-go
 
 go 1.17
 
