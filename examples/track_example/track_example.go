@@ -4,7 +4,7 @@ package main
 
 // Import amplitude package
 import (
-	"github.com/amplitude/Amplitude-Go/amplitude"
+	"github.com/amplitude/analytics-go/amplitude"
 	"time"
 )
 

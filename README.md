@@ -10,5 +10,5 @@
 This is Amplitude's latest version of the Go SDK.
 
 ## Need Help?
-If you have any issues using our SDK, feel free to [create a GitHub issue](https://github.com/amplitude/Amplitude-Go/issues/new) or submit a request on [Amplitude Help](https://help.amplitude.com/hc/en-us/requests/new).
+If you have any issues using our SDK, feel free to [create a GitHub issue](https://github.com/amplitude/analytics-go/issues/new) or submit a request on [Amplitude Help](https://help.amplitude.com/hc/en-us/requests/new).
 
