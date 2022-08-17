@@ -9,7 +9,7 @@ import (
 
 type payload struct {
 	APIKey string   `json:"api_key"`
-	Events []*Event `json:"Events"`
+	Events []*Event `json:"events"`
 }
 
 type httpClient struct {

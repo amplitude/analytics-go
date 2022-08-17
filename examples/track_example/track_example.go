@@ -5,20 +5,12 @@ package main
 // Import amplitude package
 import (
 	"github.com/amplitude/analytics-go/amplitude"
-	"time"
 )
-
-// Define your callback function (optional)
-func callbackFunc(e string, code int, message string) {
-	println(e)
-	println(code, message)
-}
 
 func main() {
 
 	config := amplitude.NewConfig("your-api-key")
 
-	// Config callback function (optional)
 	client := amplitude.NewClient(config)
 
 	// Track a basic event
@@ -27,8 +19,6 @@ func main() {
 		EventOptions: amplitude.EventOptions{UserID: "user-id"},
 		EventType:    "Button Clicked",
 	}
-	// Set time of event
-	event.SetTime(time.Now())
 	client.Track(event)
 
 	// Track events with optional properties
