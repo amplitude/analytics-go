@@ -56,7 +56,7 @@ func (a *client) GroupIdentify(groupType string, groupName string, identify Iden
 		groupIdentifyEvent := Event{
 			EventType:       GroupIdentifyEventType,
 			EventOptions:    eventOptions,
-			Groups:          map[string][]string{groupType: []string{groupName}},
+			Groups:          map[string][]string{groupType: {groupName}},
 			GroupProperties: identify.Properties,
 		}
 

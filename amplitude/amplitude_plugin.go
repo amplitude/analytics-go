@@ -68,6 +68,7 @@ func (a *AmplitudePlugin) Execute(event *Event) {
 
 	a.mutex.Lock()
 	defer a.mutex.Unlock()
+
 	if a.messageChannel == nil {
 		return
 	}

@@ -32,8 +32,8 @@ func (l *stdLogger) Error(message string, args ...interface{}) {
 	l.logger.Printf("Error: "+message, args...)
 }
 
-func newDefaultLogger() Logger {
+func NewDefaultLogger() Logger {
 	return &stdLogger{logger: log.New(os.Stderr, "amplitude-analytics", log.LstdFlags)}
 }
 
-var globalLogger = newDefaultLogger()
+var globalLogger = NewDefaultLogger()

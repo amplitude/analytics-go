@@ -56,7 +56,7 @@ func (c Config) IsEmpty() bool {
 		c.FlushQueueSize == 0 && c.FlushMaxRetries == 0 &&
 		c.Logger == nil && c.MinIDLength == 0 &&
 		c.Callback == nil && c.ServerZone == "" &&
-		c.UseBatch == false && c.Storage == nil &&
-		c.OptOut == false && c.Plan == Plan{} &&
+		!c.UseBatch && c.Storage == nil &&
+		!c.OptOut && c.Plan == Plan{} &&
 		c.ServerURL == ""
 }
