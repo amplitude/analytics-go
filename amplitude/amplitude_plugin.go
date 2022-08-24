@@ -15,6 +15,7 @@ type AmplitudePlugin struct {
 	storage        Storage
 	messageChannel chan message
 	httpClient     httpClient
+	mutex          sync.Mutex
 }
 
 func (a *AmplitudePlugin) Type() PluginType {
@@ -65,6 +66,8 @@ func (a *AmplitudePlugin) Execute(event *Event) {
 		a.config.Logger.Error("Invalid event, EventType and either UserID or DeviceID cannot be empty.", event)
 	}
 
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
 	if a.messageChannel == nil {
 		return
 	}
@@ -80,6 +83,8 @@ func (a *AmplitudePlugin) Flush() {
 
 	flushWaitGroup.Add(1)
 
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
 	a.messageChannel <- message{
 		event: nil,
 		wg:    &flushWaitGroup,
@@ -102,6 +107,8 @@ func (a *AmplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 
 func (a *AmplitudePlugin) Shutdown() {
 	a.Flush()
+	a.mutex.Lock()
+	defer a.mutex.Unlock()
 	close(a.messageChannel)
 }
 
