@@ -14,7 +14,7 @@
 
 # Announcement 📣
 
-Amplitude is introducing [Go SDK](https://pkg.go.dev/github.com/amplitude/analytics-go). Compared to use plain [HTTP V2 API](https://www.docs.developers.amplitude.com/analytics/apis/http-v2-api/), it provides improved developer experience, helps users instrument data more seamlessly and provides more control over data being instrumented using custom plugins. 
+Amplitude is introducing [Go SDK](https://pkg.go.dev/github.com/amplitude/analytics-go). Compared to plain [HTTP V2 API](https://www.docs.developers.amplitude.com/analytics/apis/http-v2-api/), it provides improved developer experience, helps users instrument data more seamlessly and provides more control over data being instrumented using custom plugins. 
 
 To learn more about the new SDK, here are some useful links:
 
