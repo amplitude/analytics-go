@@ -9,7 +9,7 @@ type timeline struct {
 
 func (t *timeline) process(event *Event) {
 	if t.configuration.OptOut {
-		t.logger.Info("Skipped event for opt out config")
+		t.logger.Infof("Skipped event for opt out config: \n\t%+v", event)
 
 		return
 	}

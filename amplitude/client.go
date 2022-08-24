@@ -14,6 +14,7 @@ type Client interface {
 }
 
 func NewClient(config Config) Client {
+	config.Logger.Debugf("Client initialized")
 	client := &client{configuration: config}
 	client.Add(&AmplitudePlugin{})
 	client.Add(NewContextPlugin())
@@ -28,13 +29,14 @@ type client struct {
 
 // Track processes and sends the given event object.
 func (a *client) Track(event Event) {
+	a.configuration.Logger.Debugf("Track event: \n\t%+v", event)
 	a.timeline.process(&event)
 }
 
 // Identify sends an identify event to update user Properties.
 func (a *client) Identify(identify Identify, eventOptions EventOptions) {
 	if !identify.IsValid() {
-		a.configuration.Logger.Error("Empty Identify Properties")
+		a.configuration.Logger.Errorf("Empty Identify Properties: \n\t%+v", identify)
 	} else {
 		identifyEvent := Event{
 			EventType:      IdentifyEventType,
@@ -51,7 +53,7 @@ func (a *client) GroupIdentify(groupType string, groupName []string, identify Id
 	eventOptions EventOptions,
 ) {
 	if !identify.IsValid() {
-		a.configuration.Logger.Error("Empty group identify Properties")
+		a.configuration.Logger.Errorf("Empty group identify Properties: \n\t%+v", identify)
 	} else {
 		groupIdentifyEvent := Event{
 			EventType:       GroupIdentifyEventType,
@@ -67,7 +69,7 @@ func (a *client) GroupIdentify(groupType string, groupName []string, identify Id
 // Revenue sends a revenue event with revenue info in eventProperties.
 func (a *client) Revenue(revenue Revenue, eventOptions EventOptions) {
 	if !revenue.IsValid() {
-		a.configuration.Logger.Error("Invalid Revenue object: either Revenue or Price should be set")
+		a.configuration.Logger.Errorf("Either Revenue or Price should be set. Invalid Revenue object: \n\t%+v", revenue)
 	} else {
 		revenueEvent := revenue.ToRevenueEvent(eventOptions)
 		a.Track(revenueEvent)
@@ -102,6 +104,7 @@ func (a *client) Remove(plugin Plugin) {
 // Shutdown shuts the client instance down from accepting new events
 // flushes all events in the buffer.
 func (a *client) Shutdown() {
+	a.configuration.Logger.Debugf("Client shutdown")
 	a.configuration.OptOut = true
 	a.timeline.shutdown()
 }

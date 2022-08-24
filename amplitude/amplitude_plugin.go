@@ -36,7 +36,7 @@ func (a *AmplitudePlugin) Setup(config Config) {
 			case <-autoFlushTicker.C:
 				a.sendEventsFromStorage(nil)
 			case message, ok := <-a.messageChannel:
-				a.config.Logger.Debug("Message received from messageChannel: ", message, message.event)
+				a.config.Logger.Debugf("Message received from messageChannel: \n\tmessage.event: %+v\n\tmessage.wg: %p", message.event, message.wg)
 
 				if !ok {
 					a.sendEventsFromStorage(nil)
@@ -62,7 +62,7 @@ func (a *AmplitudePlugin) Setup(config Config) {
 // Then pushed the event to storage waiting to be sent.
 func (a *AmplitudePlugin) Execute(event *Event) {
 	if !isValidEvent(event) {
-		a.config.Logger.Error("Invalid event, EventType and either UserID or DeviceID cannot be empty.", event)
+		a.config.Logger.Errorf("Invalid event, EventType and either UserID or DeviceID cannot be empty: \n\t%+v", event)
 	}
 
 	if a.messageChannel == nil {
