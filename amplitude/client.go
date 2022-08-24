@@ -3,7 +3,7 @@ package amplitude
 type Client interface {
 	Track(event Event)
 	Identify(identify Identify, eventOptions EventOptions)
-	GroupIdentify(groupType string, groupName []string, identify Identify,
+	GroupIdentify(groupType string, groupName string, identify Identify,
 		eventOptions EventOptions)
 	Revenue(revenue Revenue, eventOptions EventOptions)
 	SetGroup(groupType string, groupName []string, eventOptions EventOptions)
@@ -47,7 +47,7 @@ func (a *client) Identify(identify Identify, eventOptions EventOptions) {
 }
 
 // GroupIdentify sends a group identify event to update group Properties.
-func (a *client) GroupIdentify(groupType string, groupName []string, identify Identify,
+func (a *client) GroupIdentify(groupType string, groupName string, identify Identify,
 	eventOptions EventOptions,
 ) {
 	if !identify.IsValid() {
@@ -56,7 +56,7 @@ func (a *client) GroupIdentify(groupType string, groupName []string, identify Id
 		groupIdentifyEvent := Event{
 			EventType:       GroupIdentifyEventType,
 			EventOptions:    eventOptions,
-			Groups:          map[string][]string{groupType: groupName},
+			Groups:          map[string][]string{groupType: []string{groupName}},
 			GroupProperties: identify.Properties,
 		}
 
