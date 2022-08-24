@@ -36,4 +36,4 @@ func NewDefaultLogger() Logger {
 	return &stdLogger{logger: log.New(os.Stderr, "amplitude-analytics ", log.LstdFlags)}
 }
 
-var globalLogger = newDefaultLogger()
+var globalLogger = NewDefaultLogger()

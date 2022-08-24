@@ -15,7 +15,9 @@ type Client interface {
 
 func NewClient(config Config) Client {
 	config.Logger.Debugf("Client initialized")
+
 	client := &client{configuration: config}
+
 	client.Add(&AmplitudePlugin{})
 	client.Add(NewContextPlugin())
 

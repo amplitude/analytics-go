@@ -28,7 +28,7 @@ func NewConfig(apiKey string) Config {
 		FlushInterval:   DefaultFlushInterval,
 		FlushQueueSize:  DefaultFlushQueueSize,
 		FlushMaxRetries: DefaultFlushMaxRetries,
-		Logger:          newDefaultLogger(),
+		Logger:          NewDefaultLogger(),
 		MinIDLength:     DefaultMinIDLength,
 		Callback:        nil,
 		ServerZone:      ServerZoneUS,
