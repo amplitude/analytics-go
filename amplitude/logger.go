@@ -33,7 +33,7 @@ func (l *stdLogger) Errorf(message string, args ...interface{}) {
 }
 
 func NewDefaultLogger() Logger {
-	return &stdLogger{logger: log.New(os.Stderr, "amplitude-analytics ", log.LstdFlags)}
+	return &stdLogger{logger: log.New(os.Stderr, "amplitude-analytics - ", log.LstdFlags)}
 }
 
 var globalLogger = NewDefaultLogger()
