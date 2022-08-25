@@ -50,3 +50,13 @@ func (c Config) IsValid() bool {
 func (c Config) IsMinIDLengthValid() bool {
 	return c.MinIDLength > 0
 }
+
+func (c Config) IsEmpty() bool {
+	return c.APIKey == "" && c.FlushInterval == 0 &&
+		c.FlushQueueSize == 0 && c.FlushMaxRetries == 0 &&
+		c.Logger == nil && c.MinIDLength == 0 &&
+		c.Callback == nil && c.ServerZone == "" &&
+		!c.UseBatch && c.Storage == nil &&
+		!c.OptOut && c.Plan == Plan{} &&
+		c.ServerURL == ""
+}
