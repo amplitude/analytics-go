@@ -24,14 +24,14 @@ func (h *httpClient) send(p payload) {
 
 	payloadBytes, err := json.Marshal(p)
 	if err != nil {
-		h.logger.Error("payload encoding failed", err)
+		h.logger.Errorf("payload encoding failed: \n\tError: %w\n\tpayload: %+v", err, p)
 	}
 
-	h.logger.Debug("payloadBytes: ", string(payloadBytes))
+	h.logger.Debugf("payloadBytes:\n\t%s", string(payloadBytes))
 
 	request, err := http.NewRequest("POST", h.serverURL, bytes.NewReader(payloadBytes))
 	if err != nil {
-		h.logger.Error("Building new request failed", err)
+		h.logger.Errorf("Building new request failed: \n\t%w", err)
 	}
 
 	request.Header.Set("Content-Type", "application/json")
@@ -43,9 +43,9 @@ func (h *httpClient) send(p payload) {
 
 	response, err := httpClient.Do(request)
 	if err != nil {
-		h.logger.Error("HTTP request failed", err)
+		h.logger.Errorf("HTTP request failed", err)
 	}
 	defer response.Body.Close()
 
-	h.logger.Info("HTTP request response", response)
+	h.logger.Infof("HTTP response:\n\t%+v", response)
 }

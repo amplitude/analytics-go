@@ -39,34 +39,25 @@ func (i *Identify) containsOperation(op IdentityOp) bool {
 
 func (i *Identify) setUserProperty(operation IdentityOp, property string, value interface{}) {
 	if len(property) == 0 {
-		globalLogger.Warn("Attempting to perform operation" +
-			string(operation) +
-			" with a null or empty string property, ignoring")
+		globalLogger.Warnf("Attempting to perform operation %s with a null or empty string property, ignoring", string(operation))
 
 		return
 	}
 
 	if value == nil && operation != IdentityOpClearAll {
-		globalLogger.Warn("Attempting to perform operation " +
-			string(operation) +
-			" with null value for property " +
-			property +
-			", ignoring")
+		globalLogger.Warnf("Attempting to perform operation %s with null value for property %s, ignoring", string(operation), property)
 
 		return
 	}
 
 	if i.containsClearAllOperation() {
-		globalLogger.Warn("This Identify already contains a $clearAll operation, " +
-			"ignoring operation " + string(operation) + " for property " + property)
+		globalLogger.Warnf("This Identify already contains a $clearAll operation, ignoring operation %s for property %s", string(operation), property)
 
 		return
 	}
 
 	if i.containsProperty(property) {
-		globalLogger.Error("Already used property " +
-			property +
-			" in previous operation, ignoring operation " + string(operation))
+		globalLogger.Errorf("Already used property %s in previous operation, ignoring operation %s", property, string(operation))
 
 		return
 	}
