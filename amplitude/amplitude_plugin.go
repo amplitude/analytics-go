@@ -64,7 +64,7 @@ func (a *AmplitudePlugin) Execute(event *Event) {
 	if !isValidEvent(event) {
 		a.config.Logger.Error("Invalid event, EventType and either UserID or DeviceID cannot be empty.", event)
 	}
-
+	
 	if a.messageChannel == nil {
 		return
 	}
