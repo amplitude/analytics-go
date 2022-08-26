@@ -55,18 +55,12 @@ func main() {
 		EventType: "Button Clicked",
 		EventOptions: amplitude.EventOptions{
 			UserID: "user-id",
-			//DeviceID: "device-id",
 		},
-		// Optional event properties
-		//EventProperties: map[string]interface{}{"source": "notification"},
 	})
 
 	// Flushed queued events and shutdown the client
 	client.Shutdown()
 }
-
-}
-
 ```
 
 
