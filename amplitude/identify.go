@@ -1,24 +1,22 @@
 package amplitude
 
+import (
+	"fmt"
+)
+
 type Identify struct {
-	PropertiesSet map[string]bool
-	Properties    map[IdentityOp]map[string]interface{}
+	PropertiesSet    map[string]struct{}
+	Properties       map[IdentityOp]map[string]interface{}
+	validateWarnings []string
 }
 
-// IsValid checks if to Identify object has Properties
-// returns true if Identify object has Properties, otherwise returns false.
-func (i *Identify) IsValid() bool {
-	return len(i.Properties) > 0
-}
-
-func (i *Identify) containsClearAllOperation() bool {
-	for operation := range i.Properties {
-		if operation == IdentityOpClearAll {
-			return true
-		}
+func (i *Identify) Validate() ([]string, []string) {
+	var validateErrors []string
+	if len(i.Properties) > 0 {
+		validateErrors = append(validateErrors, "Empty Properties")
 	}
 
-	return false
+	return validateErrors, i.validateWarnings
 }
 
 func (i *Identify) containsProperty(property string) bool {
@@ -39,27 +37,19 @@ func (i *Identify) containsOperation(op IdentityOp) bool {
 
 func (i *Identify) setUserProperty(operation IdentityOp, property string, value interface{}) {
 	if len(property) == 0 {
-		globalLogger.Warnf("Attempting to perform operation %s with a null or empty string property, ignoring", string(operation))
-
-		return
+		i.validateWarnings = append(i.validateWarnings, fmt.Sprintf("Attempting to perform operation %s with a null or empty string property, ignoring", string(operation)))
 	}
 
 	if value == nil && operation != IdentityOpClearAll {
-		globalLogger.Warnf("Attempting to perform operation %s with null value for property %s, ignoring", string(operation), property)
-
-		return
+		i.validateWarnings = append(i.validateWarnings, fmt.Sprintf("Attempting to perform operation %s with null value for property %s, ignoring", string(operation), property))
 	}
 
-	if i.containsClearAllOperation() {
-		globalLogger.Warnf("This Identify already contains a $clearAll operation, ignoring operation %s for property %s", string(operation), property)
-
-		return
+	if i.containsOperation(IdentityOpClearAll) {
+		i.validateWarnings = append(i.validateWarnings, fmt.Sprintf("This Identify already contains a $clearAll operation, ignoring operation %s for property %s", string(operation), property))
 	}
 
 	if i.containsProperty(property) {
-		globalLogger.Errorf("Already used property %s in previous operation, ignoring operation %s", property, string(operation))
-
-		return
+		i.validateWarnings = append(i.validateWarnings, fmt.Sprintf("Already used property %s in previous operation, ignoring operation %s", property, string(operation)))
 	}
 
 	if i.Properties == nil {
@@ -67,7 +57,7 @@ func (i *Identify) setUserProperty(operation IdentityOp, property string, value 
 	}
 
 	if i.PropertiesSet == nil {
-		i.PropertiesSet = make(map[string]bool)
+		i.PropertiesSet = make(map[string]struct{})
 	}
 
 	if !i.containsOperation(operation) {
@@ -75,7 +65,7 @@ func (i *Identify) setUserProperty(operation IdentityOp, property string, value 
 	}
 
 	i.Properties[operation][property] = value
-	i.PropertiesSet[property] = true
+	i.PropertiesSet[property] = struct{}{}
 }
 
 // Set sets the value of a user property.

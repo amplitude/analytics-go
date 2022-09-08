@@ -7,56 +7,66 @@ import (
 type EventCallback = func(event Event, code int, message ...string)
 
 type Config struct {
-	APIKey          string
-	FlushInterval   time.Duration
-	FlushQueueSize  int
-	FlushMaxRetries int
-	Logger          Logger
-	MinIDLength     int
-	Callback        EventCallback
-	ServerZone      ServerZone
-	UseBatch        bool
-	Storage         Storage
-	OptOut          bool
-	Plan            Plan
-	ServerURL       string
+	APIKey            string
+	FlushInterval     time.Duration
+	FlushQueueSize    int
+	FlushMaxRetries   int
+	Logger            Logger
+	MinIDLength       int
+	Callback          EventCallback
+	ServerZone        ServerZone
+	UseBatch          bool
+	StorageFactory    func() EventStorage
+	OptOut            bool
+	Plan              Plan
+	ServerURL         string
+	ConnectionTimeout time.Duration
 }
 
 func NewConfig(apiKey string) Config {
 	return Config{
-		APIKey:          apiKey,
-		FlushInterval:   DefaultFlushInterval,
-		FlushQueueSize:  DefaultFlushQueueSize,
-		FlushMaxRetries: DefaultFlushMaxRetries,
-		Logger:          NewDefaultLogger(),
-		MinIDLength:     DefaultMinIDLength,
-		Callback:        nil,
-		ServerZone:      ServerZoneUS,
-		UseBatch:        false,
-		Storage:         &InMemoryStorage{},
-		OptOut:          false,
-		ServerURL:       HTTPV2,
+		APIKey: apiKey,
 	}
 }
 
 func (c Config) IsValid() bool {
-	if c.APIKey == "" || c.FlushQueueSize <= 0 || c.FlushInterval <= 0 || !c.IsMinIDLengthValid() {
+	if c.APIKey == "" || c.FlushQueueSize <= 0 || c.FlushInterval <= 0 || c.MinIDLength < 0 {
 		return false
 	}
 
 	return true
 }
 
-func (c Config) IsMinIDLengthValid() bool {
-	return c.MinIDLength > 0
-}
+func (c Config) setDefaultValues() Config {
+	clone := c
 
-func (c Config) IsEmpty() bool {
-	return c.APIKey == "" && c.FlushInterval == 0 &&
-		c.FlushQueueSize == 0 && c.FlushMaxRetries == 0 &&
-		c.Logger == nil && c.MinIDLength == 0 &&
-		c.Callback == nil && c.ServerZone == "" &&
-		!c.UseBatch && c.Storage == nil &&
-		!c.OptOut && c.Plan == Plan{} &&
-		c.ServerURL == ""
+	if clone.FlushInterval == 0 {
+		clone.FlushInterval = DefaultConfig.FlushInterval
+	}
+	if clone.FlushQueueSize == 0 {
+		clone.FlushQueueSize = DefaultConfig.FlushQueueSize
+	}
+	if clone.FlushMaxRetries == 0 {
+		clone.FlushMaxRetries = DefaultConfig.FlushMaxRetries
+	}
+	if clone.Logger == nil {
+		clone.Logger = NewDefaultLogger()
+	}
+	if clone.StorageFactory == nil {
+		clone.StorageFactory = func() EventStorage {
+			return NewInMemoryEventStorage(clone.FlushQueueSize)
+		}
+	}
+	if clone.ServerZone == "" {
+		clone.ServerZone = DefaultConfig.ServerZone
+	}
+	if clone.ServerURL == "" {
+		if clone.UseBatch {
+			clone.ServerURL = ServerBatchURLs[clone.ServerZone]
+		} else {
+			clone.ServerURL = ServerURLs[clone.ServerZone]
+		}
+	}
+
+	return clone
 }

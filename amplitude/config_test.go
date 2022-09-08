@@ -8,6 +8,7 @@ import (
 
 func TestConfigIsValid(t *testing.T) {
 	config := NewConfig("test-api-key")
+	config = config.setDefaultValues()
 	assert.True(t, config.IsValid())
 
 	config = NewConfig("")

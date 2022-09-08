@@ -5,52 +5,63 @@ import (
 	"time"
 )
 
-type message struct {
+type AmplitudePlugin struct {
+	config           Config
+	storage          EventStorage
+	client           *amplitudeClient
+	messageChannel   chan amplitudeMessage
+	messageChannelMu sync.RWMutex
+}
+
+type amplitudeMessage struct {
 	event *Event
 	wg    *sync.WaitGroup
 }
 
-type AmplitudePlugin struct {
-	config         Config
-	storage        Storage
-	messageChannel chan message
-	httpClient     httpClient
+func (p *AmplitudePlugin) Name() string {
+	return "amplitude"
 }
 
-func (a *AmplitudePlugin) Type() PluginType {
-	return DESTINATION
+func (p *AmplitudePlugin) Type() PluginType {
+	return PluginTypeDestination
 }
 
-func (a *AmplitudePlugin) Setup(config Config) {
-	a.config = config
-	a.storage = config.Storage
-	a.messageChannel = make(chan message, MaxBufferCapacity)
-	a.httpClient = httpClient{logger: config.Logger, serverURL: config.ServerURL}
+func (p *AmplitudePlugin) Setup(config Config) {
+	p.config = config
+	p.storage = config.StorageFactory()
+	p.messageChannel = make(chan amplitudeMessage, MaxBufferCapacity)
+	p.client = newAmplitudeClient(
+		config.ServerURL,
+		clientPayloadOptions{MinIDLength: config.MinIDLength},
+		config.Logger,
+		config.ConnectionTimeout,
+	)
 
-	autoFlushTicker := time.NewTicker(a.config.FlushInterval)
-	defer autoFlushTicker.Stop()
-
+	messageChannel := p.messageChannel
 	go func() {
+		autoFlushTicker := time.NewTicker(p.config.FlushInterval)
+		defer autoFlushTicker.Stop()
+
 		for {
 			select {
 			case <-autoFlushTicker.C:
-				a.sendEventsFromStorage(nil)
-			case message, ok := <-a.messageChannel:
-				a.config.Logger.Debugf("Message received from messageChannel: \n\tmessage.event: %+v\n\tmessage.wg: %p", message.event, message.wg)
-
+				p.sendEventsFromStorage(nil)
+			case message, ok := <-messageChannel:
 				if !ok {
-					a.sendEventsFromStorage(nil)
+					p.sendEventsFromStorage(nil)
 
 					return
 				}
 
 				if message.wg != nil {
-					a.sendEventsFromStorage(message.wg)
+					p.sendEventsFromStorage(message.wg)
+					autoFlushTicker.Reset(p.config.FlushInterval)
 				} else {
-					a.storage.Push(message.event)
+					p.storage.Push(message.event)
 
-					if a.storage.Len() >= a.config.FlushQueueSize {
-						a.sendEventsFromStorage(nil)
+					if p.storage.Len() >= p.config.FlushQueueSize {
+						p.sendEventsFromStorage(nil)
+						autoFlushTicker.Reset(p.config.FlushInterval)
 					}
 				}
 			}
@@ -60,70 +71,74 @@ func (a *AmplitudePlugin) Setup(config Config) {
 
 // Execute processes the event with plugins added to the destination plugin.
 // Then pushed the event to storage waiting to be sent.
-func (a *AmplitudePlugin) Execute(event *Event) {
+func (p *AmplitudePlugin) Execute(event *Event) {
 	if !isValidEvent(event) {
-		a.config.Logger.Errorf("Invalid event, EventType and either UserID or DeviceID cannot be empty: \n\t%+v", event)
-	}
-	
-	if a.messageChannel == nil {
-		return
+		p.config.Logger.Errorf("Invalid event, EventType and either UserID or DeviceID cannot be empty: \n\t%+v", event)
 	}
 
-	a.messageChannel <- message{
+	p.messageChannelMu.RLock()
+	defer p.messageChannelMu.RUnlock()
+
+	select {
+	case p.messageChannel <- amplitudeMessage{
 		event: event,
 		wg:    nil,
+	}:
+	default:
 	}
 }
 
-func (a *AmplitudePlugin) Flush() {
-	var flushWaitGroup sync.WaitGroup
+func (p *AmplitudePlugin) Flush() {
+	p.messageChannelMu.RLock()
+	defer p.messageChannelMu.RUnlock()
 
+	p.flush(p.messageChannel)
+}
+
+func (p *AmplitudePlugin) flush(messageChannel chan<- amplitudeMessage) {
+	var flushWaitGroup sync.WaitGroup
 	flushWaitGroup.Add(1)
 
-	a.messageChannel <- message{
+	select {
+	case messageChannel <- amplitudeMessage{
 		event: nil,
 		wg:    &flushWaitGroup,
+	}:
+	default:
+		flushWaitGroup.Done()
 	}
 
 	flushWaitGroup.Wait()
 }
 
-func (a *AmplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
+func (p *AmplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
 
-	events := a.storage.Pull()
-	a.httpClient.send(payload{
-		APIKey: a.config.APIKey,
+	events := p.storage.Pull()
+	if len(events) == 0 {
+		return
+	}
+
+	p.client.send(clientPayload{
+		APIKey: p.config.APIKey,
 		Events: events,
 	})
 }
 
-func (a *AmplitudePlugin) Shutdown() {
-	a.Flush()
-	close(a.messageChannel)
+func (p *AmplitudePlugin) Shutdown() {
+	p.messageChannelMu.Lock()
+	messageChannel := p.messageChannel
+	p.messageChannel = nil
+	p.messageChannelMu.Unlock()
+
+	p.flush(messageChannel)
+	close(messageChannel)
 }
 
 func isValidEvent(event *Event) bool {
 	return event.EventType != "" && (event.UserID != "" || event.DeviceID != "")
 }
 
-func (a *AmplitudePlugin) chunk(events []*Event) [][]*Event {
-	if len(events) == 0 {
-		return nil
-	}
-
-	chunkNum := len(events)/a.config.FlushQueueSize + 1
-	chunks := make([][]*Event, chunkNum)
-
-	for index := range chunks[:chunkNum-1] {
-		chunks[index] = make([]*Event, a.config.FlushQueueSize)
-		copy(chunks[index], events[index*a.config.FlushQueueSize:(index+1)*a.config.FlushQueueSize])
-	}
-
-	chunks[chunkNum-1] = make([]*Event, len(events)-(chunkNum-1)*a.config.FlushQueueSize)
-	copy(chunks[chunkNum-1], events[(chunkNum-1)*a.config.FlushQueueSize:])
-
-	return chunks
-}
+var _ ExtendedDestinationPlugin = (*AmplitudePlugin)(nil)

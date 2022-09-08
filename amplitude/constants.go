@@ -1,39 +1,18 @@
 package amplitude
 
-import "time"
-
-type PluginType int
-
-type ServerZone string
-
-type IdentityOp string
+import (
+	"time"
+)
 
 const (
 	SdkLibrary = "amplitude-go"
 	SdkVersion = "0.0.2"
 
-	ServerZoneEU = "EU"
-	ServerZoneUS = "US"
-	Batch        = "batch"
-	HTTPV2       = "https://api2.amplitude.com/2/httpapi"
-
-	LoggerName = "amplitude"
-
 	IdentifyEventType      = "$identify"
 	GroupIdentifyEventType = "$groupidentify"
 	RevenueEventType       = "revenue_amount"
 
-	IdentityOpAdd        = "$add"
-	IdentityOpAppend     = "$append"
-	IdentityOpClearAll   = "$clearAll"
-	IdentityOpPrepend    = "$prepend"
-	IdentityOpSet        = "$set"
-	IdentityOpSetOnce    = "$setOnce"
-	IdentityOpUnset      = "$unset"
-	IdentityOpPreInsert  = "$preInsert"
-	IdentityOpPostInsert = "$postInsert"
-	IdentityOpRemove     = "$remove"
-	UnsetValue           = "-"
+	LoggerName = "amplitude"
 
 	RevenueProductID  = "$productId"
 	RevenueQuantity   = "$quantity"
@@ -46,15 +25,59 @@ const (
 	MaxPropertyKeys = 1024
 	MaxStringLength = 1024
 
-	DefaultFlushQueueSize  = 200
-	DefaultFlushInterval   = time.Second * 10
-	DefaultFlushMaxRetries = 12
-	DefaultMinIDLength     = 5
-	ConnectionTimeout      = 10.0
-	MaxBufferCapacity      = 20000
-
-	BEFORE PluginType = iota
-	ENRICHMENT
-	DESTINATION
-	OBSERVE
+	MaxBufferCapacity = 20000
 )
+
+type (
+	IdentityOp string
+)
+
+const (
+	IdentityOpAdd        IdentityOp = "$add"
+	IdentityOpAppend     IdentityOp = "$append"
+	IdentityOpClearAll   IdentityOp = "$clearAll"
+	IdentityOpPrepend    IdentityOp = "$prepend"
+	IdentityOpSet        IdentityOp = "$set"
+	IdentityOpSetOnce    IdentityOp = "$setOnce"
+	IdentityOpUnset      IdentityOp = "$unset"
+	IdentityOpPreInsert  IdentityOp = "$preInsert"
+	IdentityOpPostInsert IdentityOp = "$postInsert"
+	IdentityOpRemove     IdentityOp = "$remove"
+	UnsetValue           string     = "-"
+)
+
+type (
+	PluginType int
+)
+
+const (
+	PluginTypeBefore PluginType = iota
+	PluginTypeEnrichment
+	PluginTypeDestination
+	PluginTypeObserve
+)
+
+type ServerZone string
+
+const (
+	ServerZoneUS ServerZone = "US"
+	ServerZoneEU ServerZone = "EU"
+)
+
+var ServerURLs = map[ServerZone]string{
+	ServerZoneUS: "https://api2.amplitude.com/2/httpapi",
+	ServerZoneEU: "https://api.eu.amplitude.com/2/httpapi",
+}
+
+var ServerBatchURLs = map[ServerZone]string{
+	ServerZoneUS: "https://api2.amplitude.com/batch",
+	ServerZoneEU: "https://api.eu.amplitude.com/batch",
+}
+
+var DefaultConfig = Config{
+	FlushInterval:     time.Second * 10,
+	FlushQueueSize:    200,
+	FlushMaxRetries:   12,
+	ServerZone:        ServerZoneUS,
+	ConnectionTimeout: time.Second * 10,
+}

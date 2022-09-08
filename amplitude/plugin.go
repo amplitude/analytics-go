@@ -1,8 +1,9 @@
 package amplitude
 
 type Plugin interface {
-	Setup(config Config)
+	Name() string
 	Type() PluginType
+	Setup(config Config)
 }
 
 type EnrichmentPlugin interface {
