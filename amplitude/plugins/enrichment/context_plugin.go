@@ -1,9 +1,12 @@
-package amplitude
+package enrichment
 
 import (
 	"time"
 
 	"github.com/google/uuid"
+
+	"github.com/amplitude/analytics-go/amplitude/constants"
+	"github.com/amplitude/analytics-go/amplitude/types"
 )
 
 // ContextPlugin is the default enrichment plugin that add library info to event.
@@ -12,9 +15,9 @@ type ContextPlugin struct {
 	contextString string
 }
 
-func NewContextPlugin() *ContextPlugin {
+func NewContextPlugin() types.EnrichmentPlugin {
 	return &ContextPlugin{
-		contextString: SdkLibrary + "/" + SdkVersion,
+		contextString: constants.SdkLibrary + "/" + constants.SdkVersion,
 	}
 }
 
@@ -22,16 +25,16 @@ func (p *ContextPlugin) Name() string {
 	return "context"
 }
 
-func (p *ContextPlugin) Type() PluginType {
-	return PluginTypeBefore
+func (p *ContextPlugin) Type() types.PluginType {
+	return types.PluginTypeBefore
 }
 
-func (p *ContextPlugin) Setup(Config) {
+func (p *ContextPlugin) Setup(types.Config) {
 }
 
 // Execute sets default timestamp and insertID if not set elsewhere
 // It also adds SDK name and version to event library.
-func (p *ContextPlugin) Execute(event *Event) *Event {
+func (p *ContextPlugin) Execute(event *types.Event) *types.Event {
 	if event.Time == 0 {
 		event.Time = time.Now().UnixMilli()
 	}
@@ -44,5 +47,3 @@ func (p *ContextPlugin) Execute(event *Event) *Event {
 
 	return event
 }
-
-var _ EnrichmentPlugin = (*ContextPlugin)(nil)

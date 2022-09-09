@@ -1,4 +1,4 @@
-package amplitude
+package destination
 
 import (
 	"bytes"
@@ -6,17 +6,19 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/amplitude/analytics-go/amplitude/types"
 )
 
-func newAmplitudeClient(
-	serverURL string, options clientPayloadOptions, logger Logger, connectionTimeout time.Duration,
-) *amplitudeClient {
+func newAmplitudeHTTPClient(
+	serverURL string, options clientPayloadOptions, logger types.Logger, connectionTimeout time.Duration,
+) *amplitudeHTTPClient {
 	var payloadOptions *clientPayloadOptions
 	if options != (clientPayloadOptions{}) {
 		payloadOptions = &options
 	}
 
-	return &amplitudeClient{
+	return &amplitudeHTTPClient{
 		serverURL:      serverURL,
 		logger:         logger,
 		payloadOptions: payloadOptions,
@@ -32,18 +34,18 @@ type clientPayloadOptions struct {
 
 type clientPayload struct {
 	APIKey  string                `json:"api_key"`
-	Events  []*Event              `json:"events"`
+	Events  []*types.Event        `json:"events"`
 	Options *clientPayloadOptions `json:"options,omitempty"`
 }
 
-type amplitudeClient struct {
+type amplitudeHTTPClient struct {
 	serverURL      string
-	logger         Logger
+	logger         types.Logger
 	payloadOptions *clientPayloadOptions
 	httpClient     *http.Client
 }
 
-func (h *amplitudeClient) send(payload clientPayload) {
+func (h *amplitudeHTTPClient) send(payload clientPayload) {
 	if len(payload.Events) == 0 {
 		return
 	}

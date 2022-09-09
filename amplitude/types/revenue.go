@@ -1,4 +1,4 @@
-package amplitude
+package types
 
 type Revenue struct {
 	Price       float64

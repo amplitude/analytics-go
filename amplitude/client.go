@@ -1,7 +1,12 @@
 package amplitude
 
 import (
+	"github.com/amplitude/analytics-go/amplitude/constants"
 	"github.com/amplitude/analytics-go/amplitude/internal"
+	"github.com/amplitude/analytics-go/amplitude/loggers"
+	"github.com/amplitude/analytics-go/amplitude/plugins/destination"
+	"github.com/amplitude/analytics-go/amplitude/plugins/enrichment"
+	"github.com/amplitude/analytics-go/amplitude/storages"
 )
 
 type Client interface {
@@ -21,7 +26,7 @@ type Client interface {
 }
 
 func NewClient(config Config) Client {
-	config = config.setDefaultValues()
+	setConfigDefaultValues(&config)
 	config.Logger.Debugf("Client initialized")
 
 	client := &client{
@@ -30,8 +35,8 @@ func NewClient(config Config) Client {
 		timeline: &timeline{},
 	}
 
-	client.AddPlugin(&AmplitudePlugin{})
-	client.AddPlugin(NewContextPlugin())
+	client.AddPlugin(destination.NewAmplitudePlugin())
+	client.AddPlugin(enrichment.NewContextPlugin())
 
 	return client
 }
@@ -52,7 +57,7 @@ func (c *client) Track(event Event) {
 		return
 	}
 
-	if event.Plan == (Plan{}) {
+	if event.Plan == nil {
 		event.Plan = c.config.Plan
 	}
 
@@ -78,7 +83,7 @@ func (c *client) Identify(identify Identify, eventOptions EventOptions) {
 		}
 	} else {
 		identifyEvent := Event{
-			EventType:      IdentifyEventType,
+			EventType:      constants.IdentifyEventType,
 			EventOptions:   eventOptions,
 			UserProperties: identify.Properties,
 		}
@@ -105,7 +110,7 @@ func (c *client) GroupIdentify(groupType string, groupName string, identify Iden
 		}
 	} else {
 		groupIdentifyEvent := Event{
-			EventType:       GroupIdentifyEventType,
+			EventType:       constants.GroupIdentifyEventType,
 			EventOptions:    eventOptions,
 			Groups:          map[string][]string{groupType: {groupName}},
 			GroupProperties: identify.Properties,
@@ -127,16 +132,16 @@ func (c *client) Revenue(revenue Revenue, eventOptions EventOptions) {
 		}
 	} else {
 		revenueEvent := Event{
-			EventType:    RevenueEventType,
+			EventType:    constants.RevenueEventType,
 			EventOptions: eventOptions,
 			EventProperties: map[string]interface{}{
-				RevenueProductID:  revenue.ProductID,
-				RevenueQuantity:   revenue.Quantity,
-				RevenuePrice:      revenue.Price,
-				RevenueType:       revenue.RevenueType,
-				RevenueReceipt:    revenue.Receipt,
-				RevenueReceiptSig: revenue.ReceiptSig,
-				DefaultRevenue:    revenue.Revenue,
+				constants.RevenueProductID:  revenue.ProductID,
+				constants.RevenueQuantity:   revenue.Quantity,
+				constants.RevenuePrice:      revenue.Price,
+				constants.RevenueType:       revenue.RevenueType,
+				constants.RevenueReceipt:    revenue.Receipt,
+				constants.RevenueReceiptSig: revenue.ReceiptSig,
+				constants.DefaultRevenue:    revenue.Revenue,
 			},
 		}
 		c.Track(revenueEvent)
@@ -182,4 +187,40 @@ func (c *client) Shutdown() {
 
 func (c *client) enabled() bool {
 	return !c.optOut.IsSet()
+}
+
+func setConfigDefaultValues(c *Config) {
+	if c.FlushInterval == 0 {
+		c.FlushInterval = constants.DefaultConfig.FlushInterval
+	}
+	if c.FlushQueueSize == 0 {
+		c.FlushQueueSize = constants.DefaultConfig.FlushQueueSize
+	}
+	if c.FlushMaxRetries == 0 {
+		c.FlushMaxRetries = constants.DefaultConfig.FlushMaxRetries
+	}
+	if c.ConnectionTimeout == 0 {
+		c.ConnectionTimeout = constants.DefaultConfig.ConnectionTimeout
+	}
+	if c.MaxStorageCapacity == 0 {
+		c.MaxStorageCapacity = constants.DefaultConfig.MaxStorageCapacity
+	}
+	if c.Logger == nil {
+		c.Logger = loggers.NewDefaultLogger()
+	}
+	if c.StorageFactory == nil {
+		c.StorageFactory = func() EventStorage {
+			return storages.NewInMemoryEventStorage(c.FlushQueueSize)
+		}
+	}
+	if c.ServerZone == "" {
+		c.ServerZone = constants.DefaultConfig.ServerZone
+	}
+	if c.ServerURL == "" {
+		if c.UseBatch {
+			c.ServerURL = constants.ServerBatchURLs[c.ServerZone]
+		} else {
+			c.ServerURL = constants.ServerURLs[c.ServerZone]
+		}
+	}
 }

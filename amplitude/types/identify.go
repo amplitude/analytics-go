@@ -1,7 +1,24 @@
-package amplitude
+package types
 
 import (
 	"fmt"
+)
+
+type IdentityOp string
+
+const (
+	IdentityOpAdd        IdentityOp = "$add"
+	IdentityOpAppend     IdentityOp = "$append"
+	IdentityOpClearAll   IdentityOp = "$clearAll"
+	IdentityOpPrepend    IdentityOp = "$prepend"
+	IdentityOpSet        IdentityOp = "$set"
+	IdentityOpSetOnce    IdentityOp = "$setOnce"
+	IdentityOpUnset      IdentityOp = "$unset"
+	IdentityOpPreInsert  IdentityOp = "$preInsert"
+	IdentityOpPostInsert IdentityOp = "$postInsert"
+	IdentityOpRemove     IdentityOp = "$remove"
+
+	UnsetValue string = "-"
 )
 
 type Identify struct {

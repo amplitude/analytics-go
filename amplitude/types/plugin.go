@@ -1,4 +1,15 @@
-package amplitude
+package types
+
+type (
+	PluginType int
+)
+
+const (
+	PluginTypeBefore PluginType = iota
+	PluginTypeEnrichment
+	PluginTypeDestination
+	PluginTypeObserve
+)
 
 type Plugin interface {
 	Name() string

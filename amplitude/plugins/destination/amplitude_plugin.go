@@ -1,36 +1,42 @@
-package amplitude
+package destination
 
 import (
 	"sync"
 	"time"
+
+	"github.com/amplitude/analytics-go/amplitude/types"
 )
 
-type AmplitudePlugin struct {
-	config           Config
-	storage          EventStorage
-	client           *amplitudeClient
+func NewAmplitudePlugin() types.ExtendedDestinationPlugin {
+	return &amplitudePlugin{}
+}
+
+type amplitudePlugin struct {
+	config           types.Config
+	storage          types.EventStorage
+	client           *amplitudeHTTPClient
 	messageChannel   chan amplitudeMessage
 	messageChannelMu sync.RWMutex
 }
 
 type amplitudeMessage struct {
-	event *Event
+	event *types.Event
 	wg    *sync.WaitGroup
 }
 
-func (p *AmplitudePlugin) Name() string {
+func (p *amplitudePlugin) Name() string {
 	return "amplitude"
 }
 
-func (p *AmplitudePlugin) Type() PluginType {
-	return PluginTypeDestination
+func (p *amplitudePlugin) Type() types.PluginType {
+	return types.PluginTypeDestination
 }
 
-func (p *AmplitudePlugin) Setup(config Config) {
+func (p *amplitudePlugin) Setup(config types.Config) {
 	p.config = config
 	p.storage = config.StorageFactory()
-	p.messageChannel = make(chan amplitudeMessage, MaxBufferCapacity)
-	p.client = newAmplitudeClient(
+	p.messageChannel = make(chan amplitudeMessage, config.MaxStorageCapacity)
+	p.client = newAmplitudeHTTPClient(
 		config.ServerURL,
 		clientPayloadOptions{MinIDLength: config.MinIDLength},
 		config.Logger,
@@ -71,7 +77,7 @@ func (p *AmplitudePlugin) Setup(config Config) {
 
 // Execute processes the event with plugins added to the destination plugin.
 // Then pushed the event to storage waiting to be sent.
-func (p *AmplitudePlugin) Execute(event *Event) {
+func (p *amplitudePlugin) Execute(event *types.Event) {
 	if !isValidEvent(event) {
 		p.config.Logger.Errorf("Invalid event, EventType and either UserID or DeviceID cannot be empty: \n\t%+v", event)
 	}
@@ -88,14 +94,14 @@ func (p *AmplitudePlugin) Execute(event *Event) {
 	}
 }
 
-func (p *AmplitudePlugin) Flush() {
+func (p *amplitudePlugin) Flush() {
 	p.messageChannelMu.RLock()
 	defer p.messageChannelMu.RUnlock()
 
 	p.flush(p.messageChannel)
 }
 
-func (p *AmplitudePlugin) flush(messageChannel chan<- amplitudeMessage) {
+func (p *amplitudePlugin) flush(messageChannel chan<- amplitudeMessage) {
 	var flushWaitGroup sync.WaitGroup
 	flushWaitGroup.Add(1)
 
@@ -111,7 +117,7 @@ func (p *AmplitudePlugin) flush(messageChannel chan<- amplitudeMessage) {
 	flushWaitGroup.Wait()
 }
 
-func (p *AmplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
+func (p *amplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 	if wg != nil {
 		defer wg.Done()
 	}
@@ -127,7 +133,7 @@ func (p *AmplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 	})
 }
 
-func (p *AmplitudePlugin) Shutdown() {
+func (p *amplitudePlugin) Shutdown() {
 	p.messageChannelMu.Lock()
 	messageChannel := p.messageChannel
 	p.messageChannel = nil
@@ -137,8 +143,6 @@ func (p *AmplitudePlugin) Shutdown() {
 	close(messageChannel)
 }
 
-func isValidEvent(event *Event) bool {
+func isValidEvent(event *types.Event) bool {
 	return event.EventType != "" && (event.UserID != "" || event.DeviceID != "")
 }
-
-var _ ExtendedDestinationPlugin = (*AmplitudePlugin)(nil)

@@ -1,14 +1,17 @@
-package amplitude
+package types
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestConfigIsValid(t *testing.T) {
 	config := NewConfig("test-api-key")
-	config = config.setDefaultValues()
+	config.FlushQueueSize = 1
+	config.FlushInterval = time.Second
+	config.MinIDLength = 2
 	assert.True(t, config.IsValid())
 
 	config = NewConfig("")

@@ -1,4 +1,4 @@
-package amplitude
+package types
 
 type Plan struct {
 	Branch    string `json:"branch,omitempty"`
