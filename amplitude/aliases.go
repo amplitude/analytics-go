@@ -21,6 +21,7 @@ type (
 	EnrichmentPlugin          = types.EnrichmentPlugin
 	DestinationPlugin         = types.DestinationPlugin
 	ExtendedDestinationPlugin = types.ExtendedDestinationPlugin
+	ExecuteResult             = types.ExecuteResult
 
 	EventStorage = types.EventStorage
 )
@@ -39,6 +40,4 @@ const (
 	RevenueEventType       = constants.RevenueEventType
 )
 
-var (
-	NewConfig = types.NewConfig
-)
+var NewConfig = types.NewConfig

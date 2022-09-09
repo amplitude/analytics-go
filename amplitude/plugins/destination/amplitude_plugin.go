@@ -127,10 +127,24 @@ func (p *amplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 		return
 	}
 
-	p.client.send(clientPayload{
+	result := p.client.send(clientPayload{
 		APIKey: p.config.APIKey,
 		Events: events,
 	})
+
+	executeCallback := p.config.ExecuteCallback
+	if executeCallback != nil {
+		go func() {
+			for _, event := range events {
+				executeCallback(types.ExecuteResult{
+					PluginName: p.Name(),
+					Event:      event,
+					Code:       result.Code,
+					Message:    result.Message,
+				})
+			}
+		}()
+	}
 }
 
 func (p *amplitudePlugin) Shutdown() {

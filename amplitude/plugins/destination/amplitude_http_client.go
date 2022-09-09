@@ -3,6 +3,7 @@ package destination
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"time"
@@ -38,6 +39,15 @@ type clientPayload struct {
 	Options *clientPayloadOptions `json:"options,omitempty"`
 }
 
+type sendResult struct {
+	Code    int
+	Message string
+}
+
+type amplitudeResponse struct {
+	Error string `json:"error"`
+}
+
 type amplitudeHTTPClient struct {
 	serverURL      string
 	logger         types.Logger
@@ -45,9 +55,9 @@ type amplitudeHTTPClient struct {
 	httpClient     *http.Client
 }
 
-func (h *amplitudeHTTPClient) send(payload clientPayload) {
+func (h *amplitudeHTTPClient) send(payload clientPayload) sendResult {
 	if len(payload.Events) == 0 {
-		return
+		return sendResult{}
 	}
 
 	payload.Options = h.payloadOptions
@@ -55,7 +65,9 @@ func (h *amplitudeHTTPClient) send(payload clientPayload) {
 	if err != nil {
 		h.logger.Errorf("payload encoding failed: \n\tError: %w\n\tpayload: %+v", err, payload)
 
-		return
+		return sendResult{
+			Message: fmt.Sprintf("Payload encoding failed: %s", err),
+		}
 	}
 
 	h.logger.Debugf("payloadBytes:\n\t%s", string(payloadBytes))
@@ -64,7 +76,9 @@ func (h *amplitudeHTTPClient) send(payload clientPayload) {
 	if err != nil {
 		h.logger.Errorf("Building new request failed: \n\t%w", err)
 
-		return
+		return sendResult{
+			Message: fmt.Sprintf("Building new request failed: %s", err),
+		}
 	}
 
 	request.Header.Set("Content-Type", "application/json")
@@ -74,7 +88,10 @@ func (h *amplitudeHTTPClient) send(payload clientPayload) {
 	if err != nil {
 		h.logger.Errorf("HTTP request failed: %s", err)
 
-		return
+		return sendResult{
+			Code:    response.StatusCode,
+			Message: fmt.Sprintf("HTTP request failed: %s", err),
+		}
 	}
 	defer func() {
 		err := response.Body.Close()
@@ -87,7 +104,23 @@ func (h *amplitudeHTTPClient) send(payload clientPayload) {
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		h.logger.Warnf("HTTP response, can't read body: %s", err)
-	} else {
-		h.logger.Infof("HTTP response body: %s", string(body))
+
+		return sendResult{
+			Code:    response.StatusCode,
+			Message: fmt.Sprintf("HTTP response, can't read body: %s", err),
+		}
+	}
+
+	h.logger.Infof("HTTP response body: %s", string(body))
+
+	var message string
+	var amplitudeResponse amplitudeResponse
+	if err := json.Unmarshal(body, &amplitudeResponse); err == nil {
+		message = amplitudeResponse.Error
+	}
+
+	return sendResult{
+		Code:    response.StatusCode,
+		Message: message,
 	}
 }

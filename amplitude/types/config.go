@@ -4,8 +4,6 @@ import (
 	"time"
 )
 
-type EventCallback = func(event Event, code int, message ...string)
-
 type Config struct {
 	APIKey             string
 	FlushInterval      time.Duration
@@ -13,7 +11,7 @@ type Config struct {
 	FlushMaxRetries    int
 	Logger             Logger
 	MinIDLength        int
-	Callback           EventCallback
+	ExecuteCallback    func(result ExecuteResult)
 	ServerZone         ServerZone
 	UseBatch           bool
 	StorageFactory     func() EventStorage

@@ -32,3 +32,10 @@ type ExtendedDestinationPlugin interface {
 	Flush()
 	Shutdown()
 }
+
+type ExecuteResult struct {
+	PluginName string
+	Event      *Event
+	Code       int
+	Message    string
+}

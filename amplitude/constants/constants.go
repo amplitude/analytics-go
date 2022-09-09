@@ -8,7 +8,7 @@ import (
 
 const (
 	SdkLibrary = "amplitude-go"
-	SdkVersion = "0.0.4"
+	SdkVersion = "0.0.5"
 
 	IdentifyEventType      = "$identify"
 	GroupIdentifyEventType = "$groupidentify"
