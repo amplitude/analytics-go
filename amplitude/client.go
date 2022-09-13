@@ -4,8 +4,8 @@ import (
 	"github.com/amplitude/analytics-go/amplitude/constants"
 	"github.com/amplitude/analytics-go/amplitude/internal"
 	"github.com/amplitude/analytics-go/amplitude/loggers"
+	"github.com/amplitude/analytics-go/amplitude/plugins/before"
 	"github.com/amplitude/analytics-go/amplitude/plugins/destination"
-	"github.com/amplitude/analytics-go/amplitude/plugins/enrichment"
 	"github.com/amplitude/analytics-go/amplitude/storages"
 )
 
@@ -19,8 +19,8 @@ type Client interface {
 	Flush()
 	Shutdown()
 
-	AddPlugin(plugin Plugin)
-	RemovePlugin(pluginName string)
+	Add(plugin Plugin)
+	Remove(pluginName string)
 
 	Config() Config
 }
@@ -35,8 +35,8 @@ func NewClient(config Config) Client {
 		timeline: &timeline{},
 	}
 
-	client.AddPlugin(destination.NewAmplitudePlugin())
-	client.AddPlugin(enrichment.NewContextPlugin())
+	client.Add(destination.NewAmplitudePlugin())
+	client.Add(before.NewContextPlugin())
 
 	return client
 }
@@ -165,15 +165,15 @@ func (c *client) Flush() {
 	c.timeline.Flush()
 }
 
-// AddPlugin adds the plugin object to client instance.
+// Add adds the plugin object to client instance.
 // Events tracked by this client instance will be processed by instances' plugins.
-func (c *client) AddPlugin(plugin Plugin) {
+func (c *client) Add(plugin Plugin) {
 	c.timeline.AddPlugin(plugin)
 	plugin.Setup(c.config)
 }
 
-// RemovePlugin removes the plugin object from client instance.
-func (c *client) RemovePlugin(pluginName string) {
+// Remove removes the plugin object from client instance.
+func (c *client) Remove(pluginName string) {
 	c.timeline.RemovePlugin(pluginName)
 }
 

@@ -6,9 +6,7 @@ type (
 
 const (
 	PluginTypeBefore PluginType = iota
-	PluginTypeEnrichment
 	PluginTypeDestination
-	PluginTypeObserve
 )
 
 type Plugin interface {
@@ -17,7 +15,7 @@ type Plugin interface {
 	Setup(config Config)
 }
 
-type EnrichmentPlugin interface {
+type BeforePlugin interface {
 	Plugin
 	Execute(event *Event) *Event
 }

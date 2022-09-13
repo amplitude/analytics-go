@@ -18,7 +18,7 @@ type (
 
 	PluginType                = types.PluginType
 	Plugin                    = types.Plugin
-	EnrichmentPlugin          = types.EnrichmentPlugin
+	BeforePlugin              = types.BeforePlugin
 	DestinationPlugin         = types.DestinationPlugin
 	ExtendedDestinationPlugin = types.ExtendedDestinationPlugin
 	ExecuteResult             = types.ExecuteResult
@@ -31,9 +31,7 @@ const (
 	ServerZoneEU = types.ServerZoneEU
 
 	PluginTypeBefore      = types.PluginTypeBefore
-	PluginTypeEnrichment  = types.PluginTypeEnrichment
 	PluginTypeDestination = types.PluginTypeDestination
-	PluginTypeObserve     = types.PluginTypeObserve
 
 	IdentifyEventType      = constants.IdentifyEventType
 	GroupIdentifyEventType = constants.GroupIdentifyEventType

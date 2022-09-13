@@ -1,4 +1,4 @@
-package enrichment
+package before
 
 import (
 	"time"
@@ -9,13 +9,13 @@ import (
 	"github.com/amplitude/analytics-go/amplitude/types"
 )
 
-// ContextPlugin is the default enrichment plugin that add library info to event.
+// ContextPlugin is the default Before plugin that add library info to event.
 // It also sets event default timestamp and insertID if not set elsewhere.
 type ContextPlugin struct {
 	contextString string
 }
 
-func NewContextPlugin() types.EnrichmentPlugin {
+func NewContextPlugin() types.BeforePlugin {
 	return &ContextPlugin{
 		contextString: constants.SdkLibrary + "/" + constants.SdkVersion,
 	}

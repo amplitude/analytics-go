@@ -5,7 +5,7 @@ import (
 )
 
 type timeline struct {
-	enrichmentPlugins  []EnrichmentPlugin
+	beforePlugins      []BeforePlugin
 	destinationPlugins []DestinationPlugin
 	mu                 sync.RWMutex
 }
@@ -14,23 +14,19 @@ func (t *timeline) Process(event *Event) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
-	event = t.applyEnrichmentPlugins(event)
+	event = t.applyBeforePlugins(event)
 	if event != nil {
 		t.applyDestinationPlugins(event)
 	}
 }
 
-func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
+func (t *timeline) applyBeforePlugins(event *Event) *Event {
 	result := event
 
-	for pluginType := PluginTypeBefore; pluginType <= PluginTypeEnrichment; pluginType++ {
-		for _, plugin := range t.enrichmentPlugins {
-			if plugin.Type() == pluginType {
-				result = plugin.Execute(result)
-				if result == nil {
-					return nil
-				}
-			}
+	for _, plugin := range t.beforePlugins {
+		result = plugin.Execute(result)
+		if result == nil {
+			return nil
 		}
 	}
 
@@ -55,8 +51,8 @@ func (t *timeline) AddPlugin(plugin Plugin) {
 	defer t.mu.Unlock()
 
 	switch plugin := plugin.(type) {
-	case EnrichmentPlugin:
-		t.enrichmentPlugins = append(t.enrichmentPlugins, plugin)
+	case BeforePlugin:
+		t.beforePlugins = append(t.beforePlugins, plugin)
 	case DestinationPlugin:
 		t.destinationPlugins = append(t.destinationPlugins, plugin)
 	default:
@@ -68,9 +64,9 @@ func (t *timeline) RemovePlugin(pluginName string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	for i := len(t.enrichmentPlugins) - 1; i >= 0; i-- {
-		if t.enrichmentPlugins[i].Name() == pluginName {
-			t.enrichmentPlugins = append(t.enrichmentPlugins[:i], t.enrichmentPlugins[i+1:]...)
+	for i := len(t.beforePlugins) - 1; i >= 0; i-- {
+		if t.beforePlugins[i].Name() == pluginName {
+			t.beforePlugins = append(t.beforePlugins[:i], t.beforePlugins[i+1:]...)
 		}
 	}
 	for i := len(t.destinationPlugins) - 1; i >= 0; i-- {
