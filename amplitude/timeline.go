@@ -5,7 +5,9 @@ import (
 )
 
 type timeline struct {
+	logger             Logger
 	beforePlugins      []BeforePlugin
+	enrichmentPlugins  []EnrichmentPlugin
 	destinationPlugins []DestinationPlugin
 	mu                 sync.RWMutex
 }
@@ -15,15 +17,35 @@ func (t *timeline) Process(event *Event) {
 	defer t.mu.RUnlock()
 
 	event = t.applyBeforePlugins(event)
-	if event != nil {
-		t.applyDestinationPlugins(event)
+	if event == nil {
+		return
 	}
+
+	event = t.applyEnrichmentPlugins(event)
+	if event == nil {
+		return
+	}
+
+	t.applyDestinationPlugins(event)
 }
 
 func (t *timeline) applyBeforePlugins(event *Event) *Event {
 	result := event
 
 	for _, plugin := range t.beforePlugins {
+		result = plugin.Execute(result)
+		if result == nil {
+			return nil
+		}
+	}
+
+	return result
+}
+
+func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
+	result := event
+
+	for _, plugin := range t.enrichmentPlugins {
 		result = plugin.Execute(result)
 		if result == nil {
 			return nil
@@ -50,13 +72,27 @@ func (t *timeline) AddPlugin(plugin Plugin) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	switch plugin := plugin.(type) {
-	case BeforePlugin:
+	switch plugin.Type() {
+	case PluginTypeBefore:
+		plugin, ok := plugin.(BeforePlugin)
+		if !ok {
+			t.logger.Errorf("Plugin %s doesn't implement Before interface", plugin.Name())
+		}
 		t.beforePlugins = append(t.beforePlugins, plugin)
-	case DestinationPlugin:
+	case PluginTypeEnrichment:
+		plugin, ok := plugin.(EnrichmentPlugin)
+		if !ok {
+			t.logger.Errorf("Plugin %s doesn't implement Enrichment interface", plugin.Name())
+		}
+		t.enrichmentPlugins = append(t.enrichmentPlugins, plugin)
+	case PluginTypeDestination:
+		plugin, ok := plugin.(DestinationPlugin)
+		if !ok {
+			t.logger.Errorf("Plugin %s doesn't implement Destination interface", plugin.Name())
+		}
 		t.destinationPlugins = append(t.destinationPlugins, plugin)
 	default:
-		panic("unknown plugin type")
+		t.logger.Errorf("Plugin %s - unknown type %s", plugin.Name(), plugin.Type())
 	}
 }
 
@@ -67,6 +103,11 @@ func (t *timeline) RemovePlugin(pluginName string) {
 	for i := len(t.beforePlugins) - 1; i >= 0; i-- {
 		if t.beforePlugins[i].Name() == pluginName {
 			t.beforePlugins = append(t.beforePlugins[:i], t.beforePlugins[i+1:]...)
+		}
+	}
+	for i := len(t.enrichmentPlugins) - 1; i >= 0; i-- {
+		if t.enrichmentPlugins[i].Name() == pluginName {
+			t.enrichmentPlugins = append(t.enrichmentPlugins[:i], t.enrichmentPlugins[i+1:]...)
 		}
 	}
 	for i := len(t.destinationPlugins) - 1; i >= 0; i-- {

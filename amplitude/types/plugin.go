@@ -6,6 +6,7 @@ type (
 
 const (
 	PluginTypeBefore PluginType = iota
+	PluginTypeEnrichment
 	PluginTypeDestination
 )
 
@@ -16,6 +17,11 @@ type Plugin interface {
 }
 
 type BeforePlugin interface {
+	Plugin
+	Execute(event *Event) *Event
+}
+
+type EnrichmentPlugin interface {
 	Plugin
 	Execute(event *Event) *Event
 }

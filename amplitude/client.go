@@ -32,7 +32,7 @@ func NewClient(config Config) Client {
 	client := &client{
 		config:   config,
 		optOut:   internal.NewAtomicBool(config.OptOut),
-		timeline: &timeline{},
+		timeline: &timeline{logger: config.Logger},
 	}
 
 	client.Add(destination.NewAmplitudePlugin())
