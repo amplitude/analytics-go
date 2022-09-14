@@ -1,36 +1,54 @@
 package amplitude
 
+import (
+	"sync"
+)
+
 type timeline struct {
-	configuration      Config
 	logger             Logger
+	beforePlugins      []BeforePlugin
 	enrichmentPlugins  []EnrichmentPlugin
 	destinationPlugins []DestinationPlugin
+	mu                 sync.RWMutex
 }
 
-func (t *timeline) process(event *Event) {
-	if t.configuration.OptOut {
-		t.logger.Infof("Skipped event for opt out config: \n\t%+v", event)
+func (t *timeline) Process(event *Event) {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
 
+	event = t.applyBeforePlugins(event)
+	if event == nil {
 		return
 	}
 
 	event = t.applyEnrichmentPlugins(event)
-	if event != nil {
-		t.applyDestinationPlugins(event)
+	if event == nil {
+		return
 	}
+
+	t.applyDestinationPlugins(event)
+}
+
+func (t *timeline) applyBeforePlugins(event *Event) *Event {
+	result := event
+
+	for _, plugin := range t.beforePlugins {
+		result = plugin.Execute(result)
+		if result == nil {
+			return nil
+		}
+	}
+
+	return result
 }
 
 func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
 	result := event
 
-	for pluginType := BEFORE; pluginType <= ENRICHMENT; pluginType++ {
-		for _, plugin := range t.enrichmentPlugins {
-			if plugin.Type() == pluginType {
-				result = plugin.Execute(result)
-				if result == nil {
-					return nil
-				}
-			}
+	for _, plugin := range t.enrichmentPlugins {
+		result = plugin.Execute(result)
+		if result == nil {
+			return nil
 		}
 	}
 
@@ -38,56 +56,97 @@ func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
 }
 
 func (t *timeline) applyDestinationPlugins(event *Event) {
+	var wg sync.WaitGroup
 	for _, plugin := range t.destinationPlugins {
 		clone := event.Clone()
-		plugin.Execute(&clone)
+		wg.Add(1)
+		go func(plugin DestinationPlugin, event *Event) {
+			defer wg.Done()
+			plugin.Execute(event)
+		}(plugin, &clone)
 	}
+	wg.Wait()
 }
 
-func (t *timeline) add(plugin Plugin) {
-	//	TO-DO stop current thread
+func (t *timeline) AddPlugin(plugin Plugin) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
 
-	switch plugin := plugin.(type) {
-	case EnrichmentPlugin:
+	switch plugin.Type() {
+	case PluginTypeBefore:
+		plugin, ok := plugin.(BeforePlugin)
+		if !ok {
+			t.logger.Errorf("Plugin %s doesn't implement Before interface", plugin.Name())
+		}
+		t.beforePlugins = append(t.beforePlugins, plugin)
+	case PluginTypeEnrichment:
+		plugin, ok := plugin.(EnrichmentPlugin)
+		if !ok {
+			t.logger.Errorf("Plugin %s doesn't implement Enrichment interface", plugin.Name())
+		}
 		t.enrichmentPlugins = append(t.enrichmentPlugins, plugin)
-	case DestinationPlugin:
+	case PluginTypeDestination:
+		plugin, ok := plugin.(DestinationPlugin)
+		if !ok {
+			t.logger.Errorf("Plugin %s doesn't implement Destination interface", plugin.Name())
+		}
 		t.destinationPlugins = append(t.destinationPlugins, plugin)
 	default:
-		panic("unknown plugin type")
+		t.logger.Errorf("Plugin %s - unknown type %s", plugin.Name(), plugin.Type())
 	}
 }
 
-func (t *timeline) remove(plugin Plugin) {
-	switch plugin := plugin.(type) {
-	case EnrichmentPlugin:
-		for i, p := range t.enrichmentPlugins {
-			if p == plugin {
-				t.enrichmentPlugins = append(t.enrichmentPlugins[:i], t.enrichmentPlugins[i+1:]...)
-			}
+func (t *timeline) RemovePlugin(pluginName string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	for i := len(t.beforePlugins) - 1; i >= 0; i-- {
+		if t.beforePlugins[i].Name() == pluginName {
+			t.beforePlugins = append(t.beforePlugins[:i], t.beforePlugins[i+1:]...)
 		}
-	case DestinationPlugin:
-		for i, p := range t.destinationPlugins {
-			if p == plugin {
-				t.destinationPlugins = append(t.destinationPlugins[:i], t.destinationPlugins[i+1:]...)
-			}
+	}
+	for i := len(t.enrichmentPlugins) - 1; i >= 0; i-- {
+		if t.enrichmentPlugins[i].Name() == pluginName {
+			t.enrichmentPlugins = append(t.enrichmentPlugins[:i], t.enrichmentPlugins[i+1:]...)
 		}
-	default:
-		panic("unknown plugin type")
+	}
+	for i := len(t.destinationPlugins) - 1; i >= 0; i-- {
+		if t.destinationPlugins[i].Name() == pluginName {
+			t.destinationPlugins = append(t.destinationPlugins[:i], t.destinationPlugins[i+1:]...)
+		}
 	}
 }
 
-func (t *timeline) flush() {
+func (t *timeline) Flush() {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	var wg sync.WaitGroup
 	for _, plugin := range t.destinationPlugins {
 		if plugin, ok := plugin.(ExtendedDestinationPlugin); ok {
-			plugin.Flush()
+			wg.Add(1)
+			go func(plugin ExtendedDestinationPlugin) {
+				defer wg.Done()
+				plugin.Flush()
+			}(plugin)
 		}
 	}
+	wg.Wait()
 }
 
-func (t *timeline) shutdown() {
+func (t *timeline) Shutdown() {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	var wg sync.WaitGroup
 	for _, plugin := range t.destinationPlugins {
 		if plugin, ok := plugin.(ExtendedDestinationPlugin); ok {
-			plugin.Shutdown()
+			wg.Add(1)
+			go func(plugin ExtendedDestinationPlugin) {
+				defer wg.Done()
+				plugin.Shutdown()
+			}(plugin)
 		}
 	}
+	wg.Wait()
 }

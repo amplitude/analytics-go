@@ -1,6 +1,8 @@
-package amplitude
+package types
 
-import "time"
+import (
+	"time"
+)
 
 type EventOptions struct {
 	UserID             string  `json:"user_id,omitempty"`
@@ -37,64 +39,9 @@ type EventOptions struct {
 	EventID            int     `json:"event_id,omitempty"`
 	SessionID          int     `json:"session_id,omitempty"`
 	PartnerID          string  `json:"partner_id,omitempty"`
-	Plan               Plan    `json:"plan,omitempty"`
+	Plan               *Plan   `json:"plan,omitempty"`
 }
 
 func (eo *EventOptions) SetTime(time time.Time) {
 	eo.Time = time.UnixMilli()
-}
-
-type Event struct {
-	EventType string `json:"event_type"`
-	EventOptions
-	EventProperties map[string]interface{}                `json:"event_properties,omitempty"`
-	UserProperties  map[IdentityOp]map[string]interface{} `json:"user_properties,omitempty"`
-	Groups          map[string][]string                   `json:"groups,omitempty"`
-	GroupProperties map[IdentityOp]map[string]interface{} `json:"group_properties,omitempty"`
-}
-
-func (e Event) Clone() Event {
-	return Event{
-		EventType:       e.EventType,
-		EventOptions:    e.EventOptions,
-		EventProperties: cloneProperties(e.EventProperties),
-		UserProperties:  cloneIdentityProperties(e.UserProperties),
-		Groups:          cloneGroups(e.Groups),
-		GroupProperties: cloneIdentityProperties(e.GroupProperties),
-	}
-}
-
-func cloneProperties(properties map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
-
-	for k, v := range properties {
-		vm, ok := v.(map[string]interface{})
-		if ok {
-			result[k] = cloneProperties(vm)
-		} else {
-			result[k] = v
-		}
-	}
-
-	return result
-}
-
-func cloneIdentityProperties(properties map[IdentityOp]map[string]interface{}) map[IdentityOp]map[string]interface{} {
-	result := make(map[IdentityOp]map[string]interface{})
-
-	for operation, p := range properties {
-		result[operation] = cloneProperties(p)
-	}
-
-	return result
-}
-
-func cloneGroups(properties map[string][]string) map[string][]string {
-	result := make(map[string][]string)
-	for k, v := range properties {
-		result[k] = make([]string, len(v))
-		copy(result[k], v)
-	}
-
-	return result
 }
