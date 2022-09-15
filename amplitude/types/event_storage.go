@@ -1,7 +1,7 @@
 package types
 
 type EventStorage interface {
-	Push(event *Event)
-	Pull() []*Event
+	Push(event *EventPayload)
+	Pull() []*EventPayload
 	Len() int
 }

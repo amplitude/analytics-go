@@ -10,11 +10,11 @@ import (
 )
 
 type Client interface {
-	Track(event Event)
-	Identify(identify Identify, eventOptions EventOptions)
-	GroupIdentify(groupType string, groupName string, identify Identify, eventOptions EventOptions)
-	SetGroup(groupType string, groupName []string, eventOptions EventOptions)
-	Revenue(revenue Revenue, eventOptions EventOptions)
+	Track(event Event, eventOptions ...EventOptions)
+	Identify(identify Identify, eventOptions ...EventOptions)
+	GroupIdentify(groupType string, groupName string, identify Identify, eventOptions ...EventOptions)
+	SetGroup(groupType string, groupName []string, eventOptions ...EventOptions)
+	Revenue(revenue Revenue, eventOptions ...EventOptions)
 
 	Flush()
 	Shutdown()
@@ -52,7 +52,24 @@ func (c *client) Config() Config {
 }
 
 // Track processes and sends the given event object.
-func (c *client) Track(event Event) {
+func (c *client) Track(event Event, eventOptions ...EventOptions) {
+	if !c.enabled() {
+		return
+	}
+
+	options := c.getFirstOrEmptyEventOptions(eventOptions)
+	if event.UserID != "" {
+		options.UserID = event.UserID
+	}
+
+	c.track(EventPayload{
+		EventType:       event.EventType,
+		EventProperties: event.Properties,
+		EventOptions:    options,
+	})
+}
+
+func (c *client) track(event EventPayload) {
 	if !c.enabled() {
 		return
 	}
@@ -66,7 +83,7 @@ func (c *client) Track(event Event) {
 }
 
 // Identify sends an identify event to update user Properties.
-func (c *client) Identify(identify Identify, eventOptions EventOptions) {
+func (c *client) Identify(identify Identify, eventOptions ...EventOptions) {
 	if !c.enabled() {
 		return
 	}
@@ -82,18 +99,18 @@ func (c *client) Identify(identify Identify, eventOptions EventOptions) {
 			c.config.Logger.Errorf("Identify: %s", validateError)
 		}
 	} else {
-		identifyEvent := Event{
+		identifyEvent := EventPayload{
 			EventType:      constants.IdentifyEventType,
-			EventOptions:   eventOptions,
+			EventOptions:   c.getFirstOrEmptyEventOptions(eventOptions),
 			UserProperties: identify.Properties,
 		}
 
-		c.Track(identifyEvent)
+		c.track(identifyEvent)
 	}
 }
 
 // GroupIdentify sends a group identify event to update group Properties.
-func (c *client) GroupIdentify(groupType string, groupName string, identify Identify, eventOptions EventOptions) {
+func (c *client) GroupIdentify(groupType string, groupName string, identify Identify, eventOptions ...EventOptions) {
 	if !c.enabled() {
 		return
 	}
@@ -109,19 +126,19 @@ func (c *client) GroupIdentify(groupType string, groupName string, identify Iden
 			c.config.Logger.Errorf("Invalid Identify: %s", validateError)
 		}
 	} else {
-		groupIdentifyEvent := Event{
+		groupIdentifyEvent := EventPayload{
 			EventType:       constants.GroupIdentifyEventType,
-			EventOptions:    eventOptions,
+			EventOptions:    c.getFirstOrEmptyEventOptions(eventOptions),
 			Groups:          map[string][]string{groupType: {groupName}},
 			GroupProperties: identify.Properties,
 		}
 
-		c.Track(groupIdentifyEvent)
+		c.track(groupIdentifyEvent)
 	}
 }
 
 // Revenue sends a revenue event with revenue info in eventProperties.
-func (c *client) Revenue(revenue Revenue, eventOptions EventOptions) {
+func (c *client) Revenue(revenue Revenue, eventOptions ...EventOptions) {
 	if !c.enabled() {
 		return
 	}
@@ -131,9 +148,9 @@ func (c *client) Revenue(revenue Revenue, eventOptions EventOptions) {
 			c.config.Logger.Errorf("Invalid Revenue: %s", validateError)
 		}
 	} else {
-		revenueEvent := Event{
+		revenueEvent := EventPayload{
 			EventType:    constants.RevenueEventType,
-			EventOptions: eventOptions,
+			EventOptions: c.getFirstOrEmptyEventOptions(eventOptions),
 			EventProperties: map[string]interface{}{
 				constants.RevenueProductID:  revenue.ProductID,
 				constants.RevenueQuantity:   revenue.Quantity,
@@ -144,20 +161,20 @@ func (c *client) Revenue(revenue Revenue, eventOptions EventOptions) {
 				constants.DefaultRevenue:    revenue.Revenue,
 			},
 		}
-		c.Track(revenueEvent)
+		c.track(revenueEvent)
 	}
 }
 
 // SetGroup sends an identify event to put a user in group(s)
 // by setting group type and group name as user property for a user.
-func (c *client) SetGroup(groupType string, groupName []string, eventOptions EventOptions) {
+func (c *client) SetGroup(groupType string, groupName []string, eventOptions ...EventOptions) {
 	if !c.enabled() {
 		return
 	}
 
 	identify := Identify{}
 	identify.Set(groupType, groupName)
-	c.Identify(identify, eventOptions)
+	c.Identify(identify, eventOptions...)
 }
 
 // Flush flushes all events waiting to be sent in the buffer.
@@ -187,6 +204,14 @@ func (c *client) Shutdown() {
 
 func (c *client) enabled() bool {
 	return !c.optOut.IsSet()
+}
+
+func (c *client) getFirstOrEmptyEventOptions(eventOptions []EventOptions) EventOptions {
+	if len(eventOptions) > 0 {
+		return eventOptions[0]
+	}
+
+	return EventOptions{}
 }
 
 func setConfigDefaultValues(c *Config) {

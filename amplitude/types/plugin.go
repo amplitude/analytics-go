@@ -18,17 +18,17 @@ type Plugin interface {
 
 type BeforePlugin interface {
 	Plugin
-	Execute(event *Event) *Event
+	Execute(event *EventPayload) *EventPayload
 }
 
 type EnrichmentPlugin interface {
 	Plugin
-	Execute(event *Event) *Event
+	Execute(event *EventPayload) *EventPayload
 }
 
 type DestinationPlugin interface {
 	Plugin
-	Execute(event *Event)
+	Execute(event *EventPayload)
 }
 
 type ExtendedDestinationPlugin interface {
@@ -39,7 +39,7 @@ type ExtendedDestinationPlugin interface {
 
 type ExecuteResult struct {
 	PluginName string
-	Event      *Event
+	Event      *EventPayload
 	Code       int
 	Message    string
 }

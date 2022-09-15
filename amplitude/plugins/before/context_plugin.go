@@ -34,7 +34,7 @@ func (p *ContextPlugin) Setup(types.Config) {
 
 // Execute sets default timestamp and insertID if not set elsewhere
 // It also adds SDK name and version to event library.
-func (p *ContextPlugin) Execute(event *types.Event) *types.Event {
+func (p *ContextPlugin) Execute(event *types.EventPayload) *types.EventPayload {
 	if event.Time == 0 {
 		event.Time = time.Now().UnixMilli()
 	}

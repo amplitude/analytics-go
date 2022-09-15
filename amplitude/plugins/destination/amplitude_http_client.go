@@ -35,7 +35,7 @@ type clientPayloadOptions struct {
 
 type clientPayload struct {
 	APIKey  string                `json:"api_key"`
-	Events  []*types.Event        `json:"events"`
+	Events  []*types.EventPayload `json:"events"`
 	Options *clientPayloadOptions `json:"options,omitempty"`
 }
 

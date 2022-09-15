@@ -15,6 +15,7 @@ type (
 	IdentityOp   = types.IdentityOp
 	Identify     = types.Identify
 	Revenue      = types.Revenue
+	EventPayload = types.EventPayload
 
 	PluginType                = types.PluginType
 	Plugin                    = types.Plugin

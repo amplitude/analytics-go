@@ -12,7 +12,7 @@ type timeline struct {
 	mu                 sync.RWMutex
 }
 
-func (t *timeline) Process(event *Event) {
+func (t *timeline) Process(event *EventPayload) {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 
@@ -29,7 +29,7 @@ func (t *timeline) Process(event *Event) {
 	t.applyDestinationPlugins(event)
 }
 
-func (t *timeline) applyBeforePlugins(event *Event) *Event {
+func (t *timeline) applyBeforePlugins(event *EventPayload) *EventPayload {
 	result := event
 
 	for _, plugin := range t.beforePlugins {
@@ -42,7 +42,7 @@ func (t *timeline) applyBeforePlugins(event *Event) *Event {
 	return result
 }
 
-func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
+func (t *timeline) applyEnrichmentPlugins(event *EventPayload) *EventPayload {
 	result := event
 
 	for _, plugin := range t.enrichmentPlugins {
@@ -55,12 +55,12 @@ func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
 	return result
 }
 
-func (t *timeline) applyDestinationPlugins(event *Event) {
+func (t *timeline) applyDestinationPlugins(event *EventPayload) {
 	var wg sync.WaitGroup
 	for _, plugin := range t.destinationPlugins {
 		clone := event.Clone()
 		wg.Add(1)
-		go func(plugin DestinationPlugin, event *Event) {
+		go func(plugin DestinationPlugin, event *EventPayload) {
 			defer wg.Done()
 			plugin.Execute(event)
 		}(plugin, &clone)

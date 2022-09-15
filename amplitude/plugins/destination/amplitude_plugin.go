@@ -20,7 +20,7 @@ type amplitudePlugin struct {
 }
 
 type amplitudeMessage struct {
-	event *types.Event
+	event *types.EventPayload
 	wg    *sync.WaitGroup
 }
 
@@ -77,7 +77,7 @@ func (p *amplitudePlugin) Setup(config types.Config) {
 
 // Execute processes the event with plugins added to the destination plugin.
 // Then pushed the event to storage waiting to be sent.
-func (p *amplitudePlugin) Execute(event *types.Event) {
+func (p *amplitudePlugin) Execute(event *types.EventPayload) {
 	if !isValidEvent(event) {
 		p.config.Logger.Errorf("Invalid event, EventType and either UserID or DeviceID cannot be empty: \n\t%+v", event)
 	}
@@ -157,6 +157,6 @@ func (p *amplitudePlugin) Shutdown() {
 	close(messageChannel)
 }
 
-func isValidEvent(event *types.Event) bool {
+func isValidEvent(event *types.EventPayload) bool {
 	return event.EventType != "" && (event.UserID != "" || event.DeviceID != "")
 }
