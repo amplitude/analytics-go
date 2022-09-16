@@ -61,6 +61,10 @@ func (c *client) Track(event Event) {
 		event.Plan = c.config.Plan
 	}
 
+	if event.IngestionMetadata == nil {
+		event.IngestionMetadata = c.config.IngestionMetadata
+	}
+
 	c.config.Logger.Debugf("Track event: \n\t%+v", event)
 	c.timeline.Process(&event)
 }
