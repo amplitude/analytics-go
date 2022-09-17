@@ -6,9 +6,10 @@ import (
 )
 
 type (
-	Config     = types.Config
-	Plan       = types.Plan
-	ServerZone = types.ServerZone
+	Config            = types.Config
+	Plan              = types.Plan
+	IngestionMetadata = types.IngestionMetadata
+	ServerZone        = types.ServerZone
 
 	EventOptions = types.EventOptions
 	Event        = types.Event

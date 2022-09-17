@@ -17,6 +17,7 @@ type Config struct {
 	StorageFactory     func() EventStorage
 	OptOut             bool
 	Plan               *Plan
+	IngestionMetadata  *IngestionMetadata
 	ServerURL          string
 	ConnectionTimeout  time.Duration
 	MaxStorageCapacity int
