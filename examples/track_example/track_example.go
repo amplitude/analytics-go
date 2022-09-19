@@ -16,18 +16,16 @@ func main() {
 	// Track a basic event
 	// One of UserID and DeviceID is required
 	event := amplitude.Event{
-		EventOptions: amplitude.EventOptions{UserID: "user-id"},
-		EventType:    "Button Clicked",
+		EventType: "Button Clicked",
+		UserID:    "user-id",
 	}
 	client.Track(event)
 
 	// Track events with optional properties
 	client.Track(amplitude.Event{
-		EventType: "type-of-event",
-		EventOptions: amplitude.EventOptions{
-			UserID:   "user-id",
-			DeviceID: "device-id",
-		},
+		EventType:       "type-of-event",
+		UserID:          "user-id",
+		DeviceID:        "device-id",
 		EventProperties: map[string]interface{}{"source": "notification"},
 	})
 

@@ -27,8 +27,9 @@ func main() {
 	// Let's track another event
 	// Then you can see that user properties of this event has location set to LAX
 	event := amplitude.Event{
-		EventOptions: amplitude.EventOptions{DeviceID: "identify-device-id", UserID: "identify-user-id"},
-		EventType:    "identify-event-type",
+		EventType: "identify-event-type",
+		DeviceID:  "identify-device-id",
+		UserID:    "identify-user-id",
 	}
 	client.Track(event)
 
