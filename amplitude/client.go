@@ -65,6 +65,14 @@ func (c *client) Track(event Event) {
 		event.IngestionMetadata = c.config.IngestionMetadata
 	}
 
+	if event.EventOptions.UserID == "" && event.UserID != "" {
+		event.EventOptions.UserID = event.UserID
+	}
+
+	if event.EventOptions.DeviceID == "" && event.DeviceID != "" {
+		event.EventOptions.DeviceID = event.DeviceID
+	}
+
 	c.config.Logger.Debugf("Track event: \n\t%+v", event)
 	c.timeline.Process(&event)
 }

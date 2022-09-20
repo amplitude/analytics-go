@@ -7,6 +7,12 @@ type Event struct {
 	UserProperties  map[IdentityOp]map[string]interface{} `json:"user_properties,omitempty"`
 	Groups          map[string][]string                   `json:"groups,omitempty"`
 	GroupProperties map[IdentityOp]map[string]interface{} `json:"group_properties,omitempty"`
+
+	// UserID is a user identifier. The value is ignored if EventOptions.UserID is set.
+	UserID string `json:"-"`
+
+	// DeviceID is a device-specific identifier. The value is ignored if EventOptions.DeviceID is set.
+	DeviceID string `json:"-"`
 }
 
 func (e Event) Clone() Event {
@@ -17,6 +23,8 @@ func (e Event) Clone() Event {
 		UserProperties:  cloneIdentityProperties(e.UserProperties),
 		Groups:          cloneGroups(e.Groups),
 		GroupProperties: cloneIdentityProperties(e.GroupProperties),
+		UserID:          e.UserID,
+		DeviceID:        e.DeviceID,
 	}
 }
 
