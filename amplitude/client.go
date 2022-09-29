@@ -180,8 +180,10 @@ func (c *client) Flush() {
 // Add adds the plugin object to client instance.
 // Events tracked by this client instance will be processed by instances' plugins.
 func (c *client) Add(plugin Plugin) {
-	c.timeline.AddPlugin(plugin)
-	plugin.Setup(c.config)
+	safePluginWrapper := c.timeline.AddPlugin(plugin)
+	if safePluginWrapper != nil {
+		safePluginWrapper.Setup(c.config)
+	}
 }
 
 // Remove removes the plugin object from client instance.
@@ -208,6 +210,9 @@ func setConfigDefaultValues(c *Config) {
 	if c.FlushQueueSize == 0 {
 		c.FlushQueueSize = constants.DefaultConfig.FlushQueueSize
 	}
+	if c.FlushSizeDivider == 0 {
+		c.FlushSizeDivider = constants.DefaultConfig.FlushSizeDivider
+	}
 	if c.FlushMaxRetries == 0 {
 		c.FlushMaxRetries = constants.DefaultConfig.FlushMaxRetries
 	}
@@ -217,12 +222,18 @@ func setConfigDefaultValues(c *Config) {
 	if c.MaxStorageCapacity == 0 {
 		c.MaxStorageCapacity = constants.DefaultConfig.MaxStorageCapacity
 	}
+	if c.RetryBaseInterval == 0 {
+		c.RetryBaseInterval = constants.DefaultConfig.RetryBaseInterval
+	}
+	if c.RetryThrottledInterval == 0 {
+		c.RetryThrottledInterval = constants.DefaultConfig.RetryThrottledInterval
+	}
 	if c.Logger == nil {
 		c.Logger = loggers.NewDefaultLogger()
 	}
 	if c.StorageFactory == nil {
 		c.StorageFactory = func() EventStorage {
-			return storages.NewInMemoryEventStorage(c.FlushQueueSize)
+			return storages.NewInMemoryEventStorage(c.FlushQueueSize, c.FlushSizeDivider)
 		}
 	}
 	if c.ServerZone == "" {

@@ -12,10 +12,10 @@ import (
 )
 
 func newAmplitudeHTTPClient(
-	serverURL string, options clientPayloadOptions, logger types.Logger, connectionTimeout time.Duration,
+	serverURL string, options amplitudePayloadOptions, logger types.Logger, connectionTimeout time.Duration,
 ) *amplitudeHTTPClient {
-	var payloadOptions *clientPayloadOptions
-	if options != (clientPayloadOptions{}) {
+	var payloadOptions *amplitudePayloadOptions
+	if options != (amplitudePayloadOptions{}) {
 		payloadOptions = &options
 	}
 
@@ -29,98 +29,87 @@ func newAmplitudeHTTPClient(
 	}
 }
 
-type clientPayloadOptions struct {
+type amplitudePayloadOptions struct {
 	MinIDLength int `json:"min_id_length,omitempty"`
 }
 
-type clientPayload struct {
-	APIKey  string                `json:"api_key"`
-	Events  []*types.Event        `json:"events"`
-	Options *clientPayloadOptions `json:"options,omitempty"`
+type amplitudePayload struct {
+	APIKey  string                   `json:"api_key"`
+	Events  []*types.Event           `json:"events"`
+	Options *amplitudePayloadOptions `json:"options,omitempty"`
 }
 
-type sendResult struct {
+type AmplitudeResult struct {
+	Events  []*types.Event
 	Code    int
 	Message string
-}
-
-type amplitudeResponse struct {
-	Error string `json:"error"`
 }
 
 type amplitudeHTTPClient struct {
 	serverURL      string
 	logger         types.Logger
-	payloadOptions *clientPayloadOptions
+	payloadOptions *amplitudePayloadOptions
 	httpClient     *http.Client
 }
 
-func (h *amplitudeHTTPClient) send(payload clientPayload) sendResult {
+func (c *amplitudeHTTPClient) Send(payload amplitudePayload) AmplitudeResponse {
 	if len(payload.Events) == 0 {
-		return sendResult{}
+		return AmplitudeResponse{}
 	}
 
-	payload.Options = h.payloadOptions
+	payload.Options = c.payloadOptions
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
-		h.logger.Errorf("payload encoding failed: \n\tError: %w\n\tpayload: %+v", err, payload)
+		c.logger.Errorf("payload encoding failed: \n\tError: %w\n\tpayload: %+v", err, payload)
 
-		return sendResult{
-			Message: fmt.Sprintf("Payload encoding failed: %s", err),
+		return AmplitudeResponse{
+			Err: fmt.Errorf("can't encode payload: %w", err),
 		}
 	}
 
-	h.logger.Debugf("payloadBytes:\n\t%s", string(payloadBytes))
+	c.logger.Debugf("payloadBytes:\n\t%s", string(payloadBytes))
 
-	request, err := http.NewRequest(http.MethodPost, h.serverURL, bytes.NewReader(payloadBytes))
+	request, err := http.NewRequest(http.MethodPost, c.serverURL, bytes.NewReader(payloadBytes))
 	if err != nil {
-		h.logger.Errorf("Building new request failed: \n\t%w", err)
+		c.logger.Errorf("Building new request failed: \n\t%w", err)
 
-		return sendResult{
-			Message: fmt.Sprintf("Building new request failed: %s", err),
+		return AmplitudeResponse{
+			Err: fmt.Errorf("can't build new request: %w", err),
 		}
 	}
 
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "*/*")
 
-	response, err := h.httpClient.Do(request)
+	response, err := c.httpClient.Do(request)
 	if err != nil {
-		h.logger.Errorf("HTTP request failed: %s", err)
-
-		return sendResult{
-			Code:    response.StatusCode,
-			Message: fmt.Sprintf("HTTP request failed: %s", err),
+		return AmplitudeResponse{
+			Err: fmt.Errorf("HTTP request failed: %w", err),
 		}
 	}
 	defer func() {
 		err := response.Body.Close()
 		if err != nil {
-			h.logger.Warnf("HTTP response, close body: %s", err)
+			c.logger.Warnf("HTTP response, close body: %s", err)
 		}
 	}()
 
-	h.logger.Infof("HTTP response code: %s", response.Status)
+	c.logger.Infof("HTTP response code: %s", response.Status)
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		h.logger.Warnf("HTTP response, can't read body: %s", err)
-
-		return sendResult{
-			Code:    response.StatusCode,
-			Message: fmt.Sprintf("HTTP response, can't read body: %s", err),
+		return AmplitudeResponse{
+			Status: response.StatusCode,
+			Err:    fmt.Errorf("can't read HTTP response body: %w", err),
 		}
 	}
 
-	h.logger.Infof("HTTP response body: %s", string(body))
+	c.logger.Infof("HTTP response body: %s", string(body))
 
-	var message string
-	var amplitudeResponse amplitudeResponse
-	if err := json.Unmarshal(body, &amplitudeResponse); err == nil {
-		message = amplitudeResponse.Error
+	var amplitudeResponse AmplitudeResponse
+	if json.Valid(body) {
+		_ = json.Unmarshal(body, &amplitudeResponse)
 	}
+	amplitudeResponse.Status = response.StatusCode
 
-	return sendResult{
-		Code:    response.StatusCode,
-		Message: message,
-	}
+	return amplitudeResponse
 }

@@ -39,10 +39,13 @@ var ServerBatchURLs = map[types.ServerZone]string{
 }
 
 var DefaultConfig = types.Config{
-	FlushInterval:      time.Second * 10,
-	FlushQueueSize:     200,
-	FlushMaxRetries:    12,
-	ServerZone:         types.ServerZoneUS,
-	ConnectionTimeout:  time.Second * 10,
-	MaxStorageCapacity: 20000,
+	FlushInterval:          time.Second * 10,
+	FlushQueueSize:         200,
+	FlushSizeDivider:       1,
+	FlushMaxRetries:        12,
+	ServerZone:             types.ServerZoneUS,
+	ConnectionTimeout:      time.Second * 10,
+	MaxStorageCapacity:     20000,
+	RetryBaseInterval:      time.Millisecond * 100,
+	RetryThrottledInterval: time.Second * 30,
 }

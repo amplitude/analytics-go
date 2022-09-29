@@ -12,11 +12,12 @@ func NewAmplitudePlugin() types.ExtendedDestinationPlugin {
 }
 
 type amplitudePlugin struct {
-	config           types.Config
-	storage          types.EventStorage
-	client           *amplitudeHTTPClient
-	messageChannel   chan amplitudeMessage
-	messageChannelMu sync.RWMutex
+	config            types.Config
+	storage           types.EventStorage
+	client            *amplitudeHTTPClient
+	responseProcessor *AmplitudeResponseProcessor
+	messageChannel    chan amplitudeMessage
+	messageChannelMu  sync.RWMutex
 }
 
 type amplitudeMessage struct {
@@ -38,13 +39,27 @@ func (p *amplitudePlugin) Setup(config types.Config) {
 	p.messageChannel = make(chan amplitudeMessage, config.MaxStorageCapacity)
 	p.client = newAmplitudeHTTPClient(
 		config.ServerURL,
-		clientPayloadOptions{MinIDLength: config.MinIDLength},
+		amplitudePayloadOptions{MinIDLength: config.MinIDLength},
 		config.Logger,
 		config.ConnectionTimeout,
 	)
+	p.responseProcessor = &AmplitudeResponseProcessor{
+		EventStorage:           p.storage,
+		MaxRetries:             config.FlushMaxRetries,
+		RetryBaseInterval:      config.RetryBaseInterval,
+		RetryThrottledInterval: config.RetryThrottledInterval,
+		Now:                    time.Now,
+		Logger:                 config.Logger,
+	}
 
 	messageChannel := p.messageChannel
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				p.config.Logger.Errorf("Panic in AmplitudePlugin: %s", r)
+			}
+		}()
+
 		autoFlushTicker := time.NewTicker(p.config.FlushInterval)
 		defer autoFlushTicker.Stop()
 
@@ -63,9 +78,9 @@ func (p *amplitudePlugin) Setup(config types.Config) {
 					p.sendEventsFromStorage(message.wg)
 					autoFlushTicker.Reset(p.config.FlushInterval)
 				} else {
-					p.storage.Push(message.event)
+					p.storage.PushNew(message.event)
 
-					if p.storage.Len() >= p.config.FlushQueueSize {
+					if p.storage.HasFullChunk() {
 						p.sendEventsFromStorage(nil)
 						autoFlushTicker.Reset(p.config.FlushInterval)
 					}
@@ -122,28 +137,30 @@ func (p *amplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 		defer wg.Done()
 	}
 
-	events := p.storage.Pull()
-	if len(events) == 0 {
-		return
-	}
+	for {
+		events := p.storage.PullChunk()
+		if len(events) == 0 {
+			break
+		}
 
-	result := p.client.send(clientPayload{
-		APIKey: p.config.APIKey,
-		Events: events,
-	})
+		response := p.client.Send(amplitudePayload{
+			APIKey: p.config.APIKey,
+			Events: events,
+		})
+		result := p.responseProcessor.Process(events, response)
 
-	executeCallback := p.config.ExecuteCallback
-	if executeCallback != nil {
-		go func() {
-			for _, event := range events {
-				executeCallback(types.ExecuteResult{
-					PluginName: p.Name(),
-					Event:      event,
-					Code:       result.Code,
-					Message:    result.Message,
-				})
-			}
-		}()
+		if len(result.Events) > 0 && p.config.ExecuteCallback != nil {
+			go func() {
+				for _, event := range result.Events {
+					p.executeCallback(types.ExecuteResult{
+						PluginName: p.Name(),
+						Event:      event,
+						Code:       result.Code,
+						Message:    result.Message,
+					})
+				}
+			}()
+		}
 	}
 }
 
@@ -157,6 +174,24 @@ func (p *amplitudePlugin) Shutdown() {
 	close(messageChannel)
 }
 
+func (p *amplitudePlugin) executeCallback(result types.ExecuteResult) {
+	defer func() {
+		if r := recover(); r != nil {
+			p.config.Logger.Errorf("Panic in callback: %s", r)
+		}
+	}()
+	p.config.ExecuteCallback(result)
+}
+
 func isValidEvent(event *types.Event) bool {
-	return event.EventType != "" && (event.UserID != "" || event.DeviceID != "")
+	userID := event.EventOptions.UserID
+	if userID == "" {
+		userID = event.UserID
+	}
+	deviceID := event.EventOptions.DeviceID
+	if deviceID == "" {
+		deviceID = event.DeviceID
+	}
+
+	return event.EventType != "" && (userID != "" || deviceID != "")
 }

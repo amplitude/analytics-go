@@ -1,7 +1,9 @@
 package types
 
 type EventStorage interface {
-	Push(event *Event)
-	Pull() []*Event
-	Len() int
+	PushNew(event *Event)
+	ReturnBack(events ...*Event)
+	PullChunk() []*Event
+	HasFullChunk() bool
+	ReduceChunkSize()
 }

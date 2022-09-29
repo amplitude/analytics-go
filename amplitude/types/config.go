@@ -5,22 +5,25 @@ import (
 )
 
 type Config struct {
-	APIKey             string
-	FlushInterval      time.Duration
-	FlushQueueSize     int
-	FlushMaxRetries    int
-	Logger             Logger
-	MinIDLength        int
-	ExecuteCallback    func(result ExecuteResult)
-	ServerZone         ServerZone
-	UseBatch           bool
-	StorageFactory     func() EventStorage
-	OptOut             bool
-	Plan               *Plan
-	IngestionMetadata  *IngestionMetadata
-	ServerURL          string
-	ConnectionTimeout  time.Duration
-	MaxStorageCapacity int
+	APIKey                 string
+	FlushInterval          time.Duration
+	FlushQueueSize         int
+	FlushSizeDivider       int
+	FlushMaxRetries        int
+	Logger                 Logger
+	MinIDLength            int
+	ExecuteCallback        func(result ExecuteResult)
+	ServerZone             ServerZone
+	UseBatch               bool
+	StorageFactory         func() EventStorage
+	OptOut                 bool
+	Plan                   *Plan
+	IngestionMetadata      *IngestionMetadata
+	ServerURL              string
+	ConnectionTimeout      time.Duration
+	MaxStorageCapacity     int
+	RetryBaseInterval      time.Duration
+	RetryThrottledInterval time.Duration
 }
 
 func NewConfig(apiKey string) Config {
