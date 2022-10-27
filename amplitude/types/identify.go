@@ -29,7 +29,7 @@ type Identify struct {
 
 func (i *Identify) Validate() ([]string, []string) {
 	var validateErrors []string
-	if len(i.Properties) > 0 {
+	if len(i.Properties) == 0 {
 		validateErrors = append(validateErrors, "Empty Properties")
 	}
 
