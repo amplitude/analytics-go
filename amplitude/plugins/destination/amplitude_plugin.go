@@ -158,5 +158,6 @@ func (p *amplitudePlugin) Shutdown() {
 }
 
 func isValidEvent(event *types.Event) bool {
-	return event.EventType != "" && (event.UserID != "" || event.DeviceID != "")
+	return event.EventType != "" && (event.UserID != "" || event.DeviceID != "" ||
+		event.EventOptions.UserID != "" || event.EventOptions.DeviceID != "")
 }
