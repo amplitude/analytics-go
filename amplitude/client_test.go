@@ -3,21 +3,17 @@ package amplitude_test
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
 	"strconv"
-	"sync"
 	"testing"
-	"time"
 
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
 	"github.com/amplitude/analytics-go/amplitude"
 	"github.com/amplitude/analytics-go/amplitude/types"
 )
 
-func TestClientSuite(t *testing.T) {
+func TestClient(t *testing.T) {
 	suite.Run(t, new(ClientSuite))
 }
 
@@ -25,313 +21,208 @@ type ClientSuite struct {
 	suite.Suite
 }
 
-func (t *ClientSuite) TestOneEvent() {
-	var payloads []string
-
-	server := t.createTestServer(func(payload string) {
-		payloads = append(payloads, payload)
-	})
-	defer server.Close()
-
+func (t *ClientSuite) TestTrack() {
 	config := amplitude.NewConfig("your_api_key")
-	config.ServerURL = server.URL
+
+	client := amplitude.NewClient(config)
+	client.Remove("context")
+	client.Remove("amplitude")
+	client.Add(&testBeforePlugin{})
+
+	destPlugin := &testDestinationPlugin{}
+	client.Add(destPlugin)
+
+	client.Track(t.createEvent(1))
+
+	events, _ := json.Marshal(destPlugin.events)
+	t.Require().JSONEq(`[
+  {
+    "event_type": "event-1",
+    "user_id": "user-1",
+    "time": 1,
+    "insert_id": "insert-1",
+    "ip": "IP 1",
+    "event_properties": {
+      "prop-1": 1
+    }
+}
+]`, string(events))
+
+	client.Shutdown()
+}
+
+func (t *ClientSuite) TestIdentify() {
+	config := amplitude.NewConfig("your_api_key")
 	config.FlushQueueSize = 3
 
 	client := amplitude.NewClient(config)
+	client.Remove("context")
+	client.Remove("amplitude")
 	client.Add(&testBeforePlugin{})
+
 	destPlugin := &testDestinationPlugin{}
 	client.Add(destPlugin)
 
-	client.Track(t.createEvent(1))
+	identify := amplitude.Identify{}
+	identify.Set("property", "value")
+	client.Identify(identify, amplitude.EventOptions{UserID: "user-1"})
 
-	client.Flush()
-	client.Shutdown()
-
-	t.Require().Equal(1, len(payloads))
-	t.Require().JSONEq(`
-{
-  "api_key": "your_api_key",
-  "events": [
-    {
-      "event_type": "event-1",
-      "user_id": "user-1",
-      "time": 1,
-      "insert_id": "insert-1",
-      "library": "amplitude-go/0.0.7",
-      "ip": "IP 1",
-      "event_properties": {
-        "prop-1": 1
+	events, _ := json.Marshal(destPlugin.events)
+	t.Require().JSONEq(`[
+  {
+    "event_type": "$identify",
+    "user_id": "user-1",
+    "ip": "IP 1",
+    "user_properties": {
+      "$set": {
+        "property": "value"
       }
     }
-  ]
-}`, payloads[0])
+}
+]`, string(events))
 
-	t.Require().Equal(1, len(destPlugin.events))
+	client.Shutdown()
 }
 
-func (t *ClientSuite) TestFlushQueueSize() {
-	var payloads []string
-
-	server := t.createTestServer(func(payload string) {
-		payloads = append(payloads, payload)
-	})
-	defer server.Close()
-
+func (t *ClientSuite) TestGroupIdentify() {
 	config := amplitude.NewConfig("your_api_key")
-	config.ServerURL = server.URL
-	config.FlushQueueSize = 2
+	config.FlushQueueSize = 3
 
 	client := amplitude.NewClient(config)
+	client.Remove("context")
+	client.Remove("amplitude")
 	client.Add(&testBeforePlugin{})
+
 	destPlugin := &testDestinationPlugin{}
 	client.Add(destPlugin)
 
-	client.Track(t.createEvent(2))
-	client.Track(t.createEvent(1))
-	client.Track(t.createEvent(3))
+	identify := amplitude.Identify{}
+	identify.Set("property", "value")
+	client.GroupIdentify("group-type", "group-name", identify, amplitude.EventOptions{DeviceID: "device-1"})
 
-	client.Flush()
-	client.Shutdown()
-
-	t.Require().Equal(2, len(payloads))
-	t.Require().JSONEq(`
-{
-  "api_key": "your_api_key",
-  "events": [
-    {
-      "event_type": "event-2",
-      "user_id": "user-2",
-      "time": 2,
-      "insert_id": "insert-2",
-      "library": "amplitude-go/0.0.7",
-      "ip": "IP 1",
-      "event_properties": {
-        "prop-2": 2
+	events, _ := json.Marshal(destPlugin.events)
+	t.Require().JSONEq(`[
+  {
+    "event_type": "$groupidentify",
+    "device_id": "device-1",
+    "ip": "IP 1",
+    "group_properties": {
+      "$set": {
+        "property": "value"
       }
     },
-    {
-      "event_type": "event-1",
-      "user_id": "user-1",
-      "time": 1,
-      "insert_id": "insert-1",
-      "library": "amplitude-go/0.0.7",
-      "ip": "IP 2",
-      "event_properties": {
-        "prop-1": 1
-      }
+    "groups": {
+      "group-type": ["group-name"]
     }
-  ]
-}`, payloads[0])
+  }
+]`, string(events))
 
-	t.Require().JSONEq(`
-{
-  "api_key": "your_api_key",
-  "events": [
-    {
-      "event_type": "event-3",
-      "user_id": "user-3",
-      "time": 3,
-      "insert_id": "insert-3",
-      "library": "amplitude-go/0.0.7",
-      "ip": "IP 3",
-      "event_properties": {
-        "prop-3": 3
-      }
-    }
-  ]
-}`, payloads[1])
-
-	t.Require().Equal(3, len(destPlugin.events))
+	client.Shutdown()
 }
 
-func (t *ClientSuite) TestFlushInterval() {
-	var payloads []string
-
-	server := t.createTestServer(func(payload string) {
-		payloads = append(payloads, payload)
-	})
-	defer server.Close()
-
+func (t *ClientSuite) TestSetGroup() {
 	config := amplitude.NewConfig("your_api_key")
-	config.ServerURL = server.URL
-	config.FlushQueueSize = 999
-	config.FlushInterval = time.Millisecond * 300
+	config.FlushQueueSize = 3
 
 	client := amplitude.NewClient(config)
+	client.Remove("context")
+	client.Remove("amplitude")
 	client.Add(&testBeforePlugin{})
+
 	destPlugin := &testDestinationPlugin{}
 	client.Add(destPlugin)
 
-	client.Track(t.createEvent(2))
-	client.Track(t.createEvent(1))
+	client.SetGroup("group-type", []string{"group-name-1", "group-name-2"}, amplitude.EventOptions{DeviceID: "device-1"})
 
-	time.Sleep(time.Millisecond * 500)
+	events, _ := json.Marshal(destPlugin.events)
+	t.Require().JSONEq(`[
+  {
+    "event_type": "$identify",
+    "device_id": "device-1",
+    "ip": "IP 1",
+    "user_properties": {
+      "$set": {
+        "group-type": ["group-name-1", "group-name-2"]
+      }
+    }
+  }
+]`, string(events))
 
-	client.Track(t.createEvent(3))
-
-	client.Flush()
 	client.Shutdown()
+}
 
-	t.Require().Equal(2, len(payloads))
-	t.Require().JSONEq(`
-{
-  "api_key": "your_api_key",
-  "events": [
-    {
-      "event_type": "event-2",
-      "user_id": "user-2",
-      "time": 2,
-      "insert_id": "insert-2",
-      "library": "amplitude-go/0.0.7",
-      "ip": "IP 1",
-      "event_properties": {
-        "prop-2": 2
-      }
-    },
-    {
-      "event_type": "event-1",
-      "user_id": "user-1",
-      "time": 1,
-      "insert_id": "insert-1",
-      "library": "amplitude-go/0.0.7",
-      "ip": "IP 2",
-      "event_properties": {
-        "prop-1": 1
-      }
+func (t *ClientSuite) TestRevenue() {
+	config := amplitude.NewConfig("your_api_key")
+	config.FlushQueueSize = 3
+
+	client := amplitude.NewClient(config)
+	client.Remove("context")
+	client.Remove("amplitude")
+	client.Add(&testBeforePlugin{})
+
+	destPlugin := &testDestinationPlugin{}
+	client.Add(destPlugin)
+
+	client.Revenue(amplitude.Revenue{
+		Price:       12.3,
+		Quantity:    45,
+		ProductID:   "product-1",
+		RevenueType: "revenue-1",
+		Receipt:     "receipt-1",
+		ReceiptSig:  "sig-1",
+		Revenue:     7,
+	}, amplitude.EventOptions{DeviceID: "device-1"})
+
+	events, _ := json.Marshal(destPlugin.events)
+	t.Require().JSONEq(`[
+  {
+    "event_type": "revenue_amount",
+    "device_id": "device-1",
+    "ip": "IP 1",
+    "event_properties": {
+      "$price": 12.3,
+      "$quantity": 45,
+      "$productId": "product-1",
+      "$revenueType": "revenue-1",
+      "$receipt": "receipt-1",
+      "$receiptSig": "sig-1",
+      "$revenue": 7
     }
-  ]
-}`, payloads[0])
+  }
+]`, string(events))
 
-	t.Require().JSONEq(`
-{
-  "api_key": "your_api_key",
-  "events": [
-    {
-      "event_type": "event-3",
-      "user_id": "user-3",
-      "time": 3,
-      "insert_id": "insert-3",
-      "library": "amplitude-go/0.0.7",
-      "ip": "IP 3",
-      "event_properties": {
-        "prop-3": 3
-      }
-    }
-  ]
-}`, payloads[1])
-
-	t.Require().Equal(3, len(destPlugin.events))
+	client.Shutdown()
 }
 
 func (t *ClientSuite) TestPanicInPlugins() {
-	var payloads []string
-
-	server := t.createTestServer(func(payload string) {
-		payloads = append(payloads, payload)
-	})
-	defer server.Close()
+	logger := &mockLogger{}
+	logger.On("Debugf", mock.Anything, mock.Anything).Return()
+	logger.On("Errorf", "Panic in plugin %s.Execute: %s", []interface{}{"test-before-plugin", "panic in test-before-plugin"}).Return().Once()
+	logger.On("Errorf", "Panic in plugin %s.Setup: %s", []interface{}{"test-destination-plugin", "panic in test-destination-plugin"}).Return().Once()
+	logger.On("Errorf", "Panic in plugin %s.Execute: %s", []interface{}{"test-destination-plugin", "panic in test-destination-plugin"}).Return().Once()
 
 	config := amplitude.NewConfig("your_api_key")
-	config.ServerURL = server.URL
+	config.Logger = logger
 	config.FlushQueueSize = 3
+	config.ExecuteCallback = func(result types.ExecuteResult) {
+		panic("callback panic")
+	}
 
 	client := amplitude.NewClient(config)
+	client.Remove("context")
+	client.Remove("amplitude")
 	client.Add(&testBeforePlugin{raisePanic: true})
+
 	destPlugin := &testDestinationPlugin{raisePanic: true}
 	client.Add(destPlugin)
 
 	client.Track(t.createEvent(1))
 
-	client.Flush()
-	client.Shutdown()
-
-	t.Require().Equal(1, len(payloads))
-	t.Require().JSONEq(`
-{
-  "api_key": "your_api_key",
-  "events": [
-    {
-      "event_type": "event-1",
-      "user_id": "user-1",
-      "time": 1,
-      "insert_id": "insert-1",
-      "library": "amplitude-go/0.0.7",
-      "event_properties": {
-        "prop-1": 1
-      }
-    }
-  ]
-}`, payloads[0])
-
 	t.Require().Equal(0, len(destPlugin.events))
-}
 
-func (t *ClientSuite) TestConcurrentTrack() {
-	var payloads []string
-	var mu sync.Mutex
+	logger.AssertExpectations(t.T())
 
-	server := t.createTestServer(func(payload string) {
-		mu.Lock()
-		defer mu.Unlock()
-		payloads = append(payloads, payload)
-	})
-	defer server.Close()
-
-	config := amplitude.NewConfig("your_api_key")
-	config.ServerURL = server.URL
-	config.FlushQueueSize = 33
-	config.Logger = &noopLogger{}
-
-	events := make(chan types.Event)
-
-	clientCount := 3
-	clients := make([]amplitude.Client, clientCount)
-	var wg sync.WaitGroup
-	for i := range clients {
-		client := amplitude.NewClient(config)
-		client.Add(&testBeforePlugin{})
-		destPlugin := &testDestinationPlugin{}
-		client.Add(destPlugin)
-		clients[i] = client
-
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for event := range events {
-				client.Track(event)
-			}
-		}()
-	}
-
-	eventCount := 13579
-	for i := 1; i <= eventCount; i++ {
-		events <- t.createEvent(1)
-	}
-	close(events)
-
-	wg.Wait()
-
-	for _, client := range clients {
-		client.Flush()
-		client.Shutdown()
-	}
-	time.Sleep(time.Millisecond * 500)
-	server.Close()
-
-	mu.Lock()
-	defer mu.Unlock()
-
-	serverEventCount := 0
-	for _, payload := range payloads {
-		var data struct {
-			Events []interface{} `json:"events"`
-		}
-		err := json.Unmarshal([]byte(payload), &data)
-		t.Require().Nil(err)
-		serverEventCount += len(data.Events)
-	}
-
-	t.Require().Equal(eventCount, serverEventCount)
+	client.Shutdown()
 }
 
 func (t *ClientSuite) createEvent(index int) amplitude.Event {
@@ -348,17 +239,6 @@ func (t *ClientSuite) createEvent(index int) amplitude.Event {
 			"prop" + postfix: index,
 		},
 	}
-}
-
-func (t *ClientSuite) createTestServer(onPayload func(payload string)) *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		body, err := io.ReadAll(r.Body)
-		t.Require().Nil(err)
-
-		t.Require().True(json.Valid(body))
-
-		onPayload(string(body))
-	}))
 }
 
 type testBeforePlugin struct {
@@ -416,16 +296,22 @@ func (p *testDestinationPlugin) Execute(event *amplitude.Event) {
 	p.events = append(p.events, event)
 }
 
-type noopLogger struct{}
-
-func (l noopLogger) Debugf(string, ...interface{}) {
+type mockLogger struct {
+	mock.Mock
 }
 
-func (l noopLogger) Infof(string, ...interface{}) {
+func (l *mockLogger) Debugf(message string, args ...interface{}) {
+	l.Called(message, args)
 }
 
-func (l noopLogger) Warnf(string, ...interface{}) {
+func (l *mockLogger) Infof(message string, args ...interface{}) {
+	l.Called(message, args)
 }
 
-func (l noopLogger) Errorf(string, ...interface{}) {
+func (l *mockLogger) Warnf(message string, args ...interface{}) {
+	l.Called(message, args)
+}
+
+func (l *mockLogger) Errorf(message string, args ...interface{}) {
+	l.Called(message, args)
 }

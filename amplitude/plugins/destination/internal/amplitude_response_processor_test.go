@@ -1,4 +1,4 @@
-package destination_test
+package internal_test
 
 import (
 	"errors"
@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/mock"
+	"github.com/amplitude/analytics-go/amplitude/plugins/destination/internal"
+
 	"github.com/stretchr/testify/suite"
 
 	"github.com/amplitude/analytics-go/amplitude/loggers"
-	"github.com/amplitude/analytics-go/amplitude/plugins/destination"
 	"github.com/amplitude/analytics-go/amplitude/types"
 )
 
@@ -32,7 +32,7 @@ var originalEvents = []types.Event{
 	},
 }
 
-func TestAmplitudeResponseProcessorSuite(t *testing.T) {
+func TestAmplitudeResponseProcessor(t *testing.T) {
 	suite.Run(t, new(AmplitudeResponseProcessorSuite))
 }
 
@@ -41,12 +41,12 @@ type AmplitudeResponseProcessorSuite struct {
 }
 
 func (t *AmplitudeResponseProcessorSuite) TestSuccess() {
-	p := destination.AmplitudeResponseProcessor{
+	p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
 		Logger: loggers.NewDefaultLogger(),
-	}
+	})
 	events := t.cloneOriginalEvents()
 
-	result := p.Process(events, destination.AmplitudeResponse{
+	result := p.Process(events, internal.AmplitudeResponse{
 		Status: http.StatusOK,
 		Code:   222,
 	})
@@ -54,9 +54,11 @@ func (t *AmplitudeResponseProcessorSuite) TestSuccess() {
 	require := t.Require()
 	require.Equal(222, result.Code)
 	require.Equal("Event sent successfully.", result.Message)
-	require.Equal(len(originalEvents), len(result.Events))
-	for i, event := range result.Events {
-		require.Equal(originalEvents[i], *event)
+	require.Equal(len(originalEvents), len(result.EventsForCallback))
+	require.Equal(0, len(result.EventsForRetry))
+
+	for i, event := range result.EventsForCallback {
+		require.Equal(originalEvents[i], *event.Event)
 	}
 }
 
@@ -66,18 +68,15 @@ func (t *AmplitudeResponseProcessorSuite) TestTimeout() {
 
 	now := time.Now()
 	retryBaseInterval := time.Second * 3
-	storage := &mockEventStorage{}
-	storage.On("ReturnBack", []*types.Event{events[0], events[2]}).Once()
 
-	p := destination.AmplitudeResponseProcessor{
-		EventStorage:      storage,
+	p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
 		MaxRetries:        2,
 		RetryBaseInterval: retryBaseInterval,
 		Now:               func() time.Time { return now },
 		Logger:            loggers.NewDefaultLogger(),
-	}
+	})
 
-	result := p.Process(events, destination.AmplitudeResponse{
+	result := p.Process(events, internal.AmplitudeResponse{
 		Status: http.StatusRequestTimeout,
 		Code:   408,
 		Error:  "too busy",
@@ -86,28 +85,29 @@ func (t *AmplitudeResponseProcessorSuite) TestTimeout() {
 	require := t.Require()
 	require.Equal(408, result.Code)
 	require.Equal("Event reached max retry times 2", result.Message)
-	require.Equal(1, len(result.Events))
-	require.Equal(2, result.Events[0].RetryCount)
-	result.Events[0].RetryCount = 0
-	require.Equal(originalEvents[1], *result.Events[0])
+	require.Equal(1, len(result.EventsForCallback))
+	require.Equal(2, result.EventsForCallback[0].RetryCount)
+	require.Equal(originalEvents[1], *result.EventsForCallback[0].Event)
 
-	for _, event := range []*types.Event{events[0], events[2]} {
+	require.Equal(2, len(result.EventsForRetry))
+
+	for i, originalEvent := range []types.Event{originalEvents[0], originalEvents[2]} {
+		event := *result.EventsForRetry[i]
+		require.Equal(originalEvent, *event.Event)
 		require.Equal(1, event.RetryCount)
 		require.Equal(now.Add(retryBaseInterval), event.RetryAt)
 	}
-
-	storage.AssertExpectations(t.T())
 }
 
 func (t *AmplitudeResponseProcessorSuite) TestTooLargeRequest_OneEvent() {
 	events := t.cloneOriginalEvents()
 	events = events[:1]
 
-	p := destination.AmplitudeResponseProcessor{
+	p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
 		Logger: loggers.NewDefaultLogger(),
-	}
+	})
 
-	result := p.Process(events, destination.AmplitudeResponse{
+	result := p.Process(events, internal.AmplitudeResponse{
 		Status: http.StatusRequestEntityTooLarge,
 		Code:   413,
 		Error:  "too large",
@@ -116,25 +116,23 @@ func (t *AmplitudeResponseProcessorSuite) TestTooLargeRequest_OneEvent() {
 	require := t.Require()
 	require.Equal(413, result.Code)
 	require.Equal("too large", result.Message)
-	require.Equal(1, len(result.Events))
-	require.Equal(originalEvents[0], *result.Events[0])
+	require.Equal(1, len(result.EventsForCallback))
+	require.Equal(originalEvents[0], *result.EventsForCallback[0].Event)
+
+	require.Equal(0, len(result.EventsForRetry))
 }
 
 func (t *AmplitudeResponseProcessorSuite) TestTooLargeRequest() {
 	events := t.cloneOriginalEvents()
 
 	now := time.Now()
-	storage := &mockEventStorage{}
-	storage.On("ReturnBack", events).Once()
-	storage.On("ReduceChunkSize").Once()
 
-	p := destination.AmplitudeResponseProcessor{
-		EventStorage: storage,
-		Now:          func() time.Time { return now },
-		Logger:       loggers.NewDefaultLogger(),
-	}
+	p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
+		Now:    func() time.Time { return now },
+		Logger: loggers.NewDefaultLogger(),
+	})
 
-	result := p.Process(events, destination.AmplitudeResponse{
+	result := p.Process(events, internal.AmplitudeResponse{
 		Status: http.StatusRequestEntityTooLarge,
 		Code:   413,
 		Error:  "too large",
@@ -143,19 +141,26 @@ func (t *AmplitudeResponseProcessorSuite) TestTooLargeRequest() {
 	require := t.Require()
 	require.Equal(413, result.Code)
 	require.Equal("too large", result.Message)
-	require.Empty(result.Events)
+	require.Empty(result.EventsForCallback)
 
-	storage.AssertExpectations(t.T())
+	require.Equal(len(originalEvents), len(result.EventsForRetry))
+
+	for i, originalEvent := range originalEvents {
+		event := *result.EventsForRetry[i]
+		require.Equal(originalEvent, *event.Event)
+		require.Equal(0, event.RetryCount)
+		require.Empty(event.RetryAt)
+	}
 }
 
 func (t *AmplitudeResponseProcessorSuite) TestBadRequest_InvalidAPIKey() {
 	events := t.cloneOriginalEvents()
 
-	p := destination.AmplitudeResponseProcessor{
+	p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
 		Logger: loggers.NewDefaultLogger(),
-	}
+	})
 
-	result := p.Process(events, destination.AmplitudeResponse{
+	result := p.Process(events, internal.AmplitudeResponse{
 		Status: http.StatusBadRequest,
 		Code:   400,
 		Error:  "Invalid API key: info",
@@ -164,20 +169,23 @@ func (t *AmplitudeResponseProcessorSuite) TestBadRequest_InvalidAPIKey() {
 	require := t.Require()
 	require.Equal(400, result.Code)
 	require.Equal("Invalid API key", result.Message)
-	require.Equal(len(originalEvents), len(result.Events))
-	for i, event := range result.Events {
-		require.Equal(originalEvents[i], *event)
+	require.Equal(len(originalEvents), len(result.EventsForCallback))
+
+	for i, event := range result.EventsForCallback {
+		require.Equal(originalEvents[i], *event.Event)
 	}
+
+	require.Equal(0, len(result.EventsForRetry))
 }
 
 func (t *AmplitudeResponseProcessorSuite) TestBadRequest_MissingField() {
 	events := t.cloneOriginalEvents()
 
-	p := destination.AmplitudeResponseProcessor{
+	p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
 		Logger: loggers.NewDefaultLogger(),
-	}
+	})
 
-	result := p.Process(events, destination.AmplitudeResponse{
+	result := p.Process(events, internal.AmplitudeResponse{
 		Status:       http.StatusBadRequest,
 		Code:         400,
 		Error:        "some error",
@@ -187,26 +195,26 @@ func (t *AmplitudeResponseProcessorSuite) TestBadRequest_MissingField() {
 	require := t.Require()
 	require.Equal(400, result.Code)
 	require.Equal("Request missing required field ABC", result.Message)
-	require.Equal(len(originalEvents), len(result.Events))
-	for i, event := range result.Events {
-		require.Equal(originalEvents[i], *event)
+	require.Equal(len(originalEvents), len(result.EventsForCallback))
+
+	for i, event := range result.EventsForCallback {
+		require.Equal(originalEvents[i], *event.Event)
 	}
+
+	require.Equal(0, len(result.EventsForRetry))
 }
 
 func (t *AmplitudeResponseProcessorSuite) TestBadRequest_InvalidEvents() {
 	events := t.cloneOriginalEvents()
 
 	now := time.Now()
-	storage := &mockEventStorage{}
-	storage.On("ReturnBack", []*types.Event{events[1]}).Once()
 
-	p := destination.AmplitudeResponseProcessor{
-		EventStorage: storage,
-		Now:          func() time.Time { return now },
-		Logger:       loggers.NewDefaultLogger(),
-	}
+	p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
+		Now:    func() time.Time { return now },
+		Logger: loggers.NewDefaultLogger(),
+	})
 
-	result := p.Process(events, destination.AmplitudeResponse{
+	result := p.Process(events, internal.AmplitudeResponse{
 		Status:         http.StatusBadRequest,
 		Code:           400,
 		Error:          "some error",
@@ -219,30 +227,33 @@ func (t *AmplitudeResponseProcessorSuite) TestBadRequest_InvalidEvents() {
 	require := t.Require()
 	require.Equal(400, result.Code)
 	require.Equal("some error", result.Message)
-	require.Equal(2, len(result.Events))
-	require.Equal(originalEvents[0], *result.Events[0])
-	require.Equal(originalEvents[2], *result.Events[1])
+	require.Equal(2, len(result.EventsForCallback))
+	require.Equal(originalEvents[0], *result.EventsForCallback[0].Event)
+	require.Equal(originalEvents[2], *result.EventsForCallback[1].Event)
 
-	storage.AssertExpectations(t.T())
+	require.Equal(1, len(result.EventsForRetry))
+
+	for i, originalEvent := range []types.Event{originalEvents[1]} {
+		event := *result.EventsForRetry[i]
+		require.Equal(originalEvent, *event.Event)
+		require.Equal(0, event.RetryCount)
+		require.Empty(event.RetryAt)
+	}
 }
 
 func (t *AmplitudeResponseProcessorSuite) TestTooManyRequests() {
 	events := t.cloneOriginalEvents()
 
 	now := time.Now()
-	storage := &mockEventStorage{}
-	storage.On("ReturnBack", []*types.Event{events[2]}).Once()
-	storage.On("ReturnBack", []*types.Event{events[0]}).Once()
 
 	retryThrottledInterval := time.Second * 7
-	p := destination.AmplitudeResponseProcessor{
-		EventStorage:           storage,
+	p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
 		Now:                    func() time.Time { return now },
 		RetryThrottledInterval: retryThrottledInterval,
 		Logger:                 loggers.NewDefaultLogger(),
-	}
+	})
 
-	result := p.Process(events, destination.AmplitudeResponse{
+	result := p.Process(events, internal.AmplitudeResponse{
 		Status:          http.StatusTooManyRequests,
 		Code:            429,
 		Error:           "some error",
@@ -255,26 +266,31 @@ func (t *AmplitudeResponseProcessorSuite) TestTooManyRequests() {
 	require := t.Require()
 	require.Equal(429, result.Code)
 	require.Equal("Exceeded daily quota", result.Message)
-	require.Equal(1, len(result.Events))
-	require.Equal(originalEvents[1], *result.Events[0])
+	require.Equal(1, len(result.EventsForCallback))
+	require.Equal(originalEvents[1], *result.EventsForCallback[0].Event)
+
+	require.Equal(2, len(result.EventsForRetry))
+
+	for i, originalEvent := range []types.Event{originalEvents[0], originalEvents[2]} {
+		event := *result.EventsForRetry[i]
+		require.Equal(originalEvent, *event.Event)
+	}
 
 	require.Equal(0, events[0].RetryCount)
-	require.Equal(time.Time{}, events[0].RetryAt)
+	require.Empty(events[0].RetryAt)
 
 	require.Equal(0, events[2].RetryCount)
 	require.Equal(now.Add(retryThrottledInterval), events[2].RetryAt)
-
-	storage.AssertExpectations(t.T())
 }
 
 func (t *AmplitudeResponseProcessorSuite) TestProcessUnknownError_Err() {
 	events := t.cloneOriginalEvents()
 
-	p := destination.AmplitudeResponseProcessor{
+	p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
 		Logger: loggers.NewDefaultLogger(),
-	}
+	})
 
-	result := p.Process(events, destination.AmplitudeResponse{
+	result := p.Process(events, internal.AmplitudeResponse{
 		Status: http.StatusOK,
 		Code:   202,
 		Err:    errors.New("some error"),
@@ -283,20 +299,23 @@ func (t *AmplitudeResponseProcessorSuite) TestProcessUnknownError_Err() {
 	require := t.Require()
 	require.Equal(202, result.Code)
 	require.Equal("some error", result.Message)
-	require.Equal(len(originalEvents), len(result.Events))
-	for i, event := range result.Events {
-		require.Equal(originalEvents[i], *event)
+	require.Equal(len(originalEvents), len(result.EventsForCallback))
+
+	for i, event := range result.EventsForCallback {
+		require.Equal(originalEvents[i], *event.Event)
 	}
+
+	require.Equal(0, len(result.EventsForRetry))
 }
 
 func (t *AmplitudeResponseProcessorSuite) TestProcessUnknownError_ResponseError() {
 	events := t.cloneOriginalEvents()
 
-	p := destination.AmplitudeResponseProcessor{
+	p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
 		Logger: loggers.NewDefaultLogger(),
-	}
+	})
 
-	result := p.Process(events, destination.AmplitudeResponse{
+	result := p.Process(events, internal.AmplitudeResponse{
 		Status: 100,
 		Code:   100,
 		Error:  "some error",
@@ -305,48 +324,22 @@ func (t *AmplitudeResponseProcessorSuite) TestProcessUnknownError_ResponseError(
 	require := t.Require()
 	require.Equal(100, result.Code)
 	require.Equal("some error", result.Message)
-	require.Equal(len(originalEvents), len(result.Events))
-	for i, event := range result.Events {
-		require.Equal(originalEvents[i], *event)
+	require.Equal(len(originalEvents), len(result.EventsForCallback))
+
+	for i, event := range result.EventsForCallback {
+		require.Equal(originalEvents[i], *event.Event)
 	}
+
+	require.Equal(0, len(result.EventsForRetry))
 }
 
-func (t *AmplitudeResponseProcessorSuite) cloneOriginalEvents() []*types.Event {
-	events := make([]*types.Event, len(originalEvents))
+func (t *AmplitudeResponseProcessorSuite) cloneOriginalEvents() []*types.StorageEvent {
+	events := make([]*types.StorageEvent, len(originalEvents))
+
 	for i, originalEvent := range originalEvents {
 		event := originalEvent
-		events[i] = &event
+		events[i] = &types.StorageEvent{Event: &event}
 	}
 
 	return events
-}
-
-type mockEventStorage struct {
-	mock.Mock
-}
-
-func (s *mockEventStorage) PushNew(event *types.Event) {
-	s.Called(event)
-}
-
-func (s *mockEventStorage) ReturnBack(events ...*types.Event) {
-	s.Called(events)
-}
-
-func (s *mockEventStorage) PullChunk() []*types.Event {
-	args := s.Called()
-	if args[0] == nil {
-		return []*types.Event(nil)
-	}
-	return args[0].([]*types.Event)
-}
-
-func (s *mockEventStorage) HasFullChunk() bool {
-	args := s.Called()
-
-	return args.Bool(0)
-}
-
-func (s *mockEventStorage) ReduceChunkSize() {
-	s.Called()
 }

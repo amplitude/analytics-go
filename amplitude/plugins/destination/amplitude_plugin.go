@@ -1,8 +1,11 @@
 package destination
 
 import (
+	"net/http"
 	"sync"
 	"time"
+
+	"github.com/amplitude/analytics-go/amplitude/plugins/destination/internal"
 
 	"github.com/amplitude/analytics-go/amplitude/types"
 )
@@ -11,13 +14,24 @@ func NewAmplitudePlugin() types.ExtendedDestinationPlugin {
 	return &amplitudePlugin{}
 }
 
+type InternalDestinationPlugin interface {
+	types.ExtendedDestinationPlugin
+	SetHTTPClient(client internal.AmplitudeHTTPClient)
+	SetResponseProcessor(responseProcessor internal.AmplitudeResponseProcessor)
+	SetNow(now func() time.Time)
+}
+
 type amplitudePlugin struct {
 	config            types.Config
 	storage           types.EventStorage
-	client            *amplitudeHTTPClient
-	responseProcessor *AmplitudeResponseProcessor
+	client            internal.AmplitudeHTTPClient
+	responseProcessor internal.AmplitudeResponseProcessor
 	messageChannel    chan amplitudeMessage
 	messageChannelMu  sync.RWMutex
+
+	now         func() time.Time
+	chunkSize   int
+	sizeDivider int
 }
 
 type amplitudeMessage struct {
@@ -35,65 +49,90 @@ func (p *amplitudePlugin) Type() types.PluginType {
 
 func (p *amplitudePlugin) Setup(config types.Config) {
 	p.config = config
-	p.storage = config.StorageFactory()
-	p.messageChannel = make(chan amplitudeMessage, config.MaxStorageCapacity)
-	p.client = newAmplitudeHTTPClient(
-		config.ServerURL,
-		amplitudePayloadOptions{MinIDLength: config.MinIDLength},
-		config.Logger,
-		config.ConnectionTimeout,
-	)
-	p.responseProcessor = &AmplitudeResponseProcessor{
-		EventStorage:           p.storage,
-		MaxRetries:             config.FlushMaxRetries,
-		RetryBaseInterval:      config.RetryBaseInterval,
-		RetryThrottledInterval: config.RetryThrottledInterval,
-		Now:                    time.Now,
-		Logger:                 config.Logger,
+	if p.now == nil {
+		p.now = time.Now
 	}
 
-	messageChannel := p.messageChannel
-	go func() {
-		defer func() {
-			if r := recover(); r != nil {
-				p.config.Logger.Errorf("Panic in AmplitudePlugin: %s", r)
+	p.sizeDivider = config.FlushSizeDivider
+	if p.sizeDivider < 1 {
+		p.sizeDivider = 1
+	}
+
+	p.chunkSize = config.FlushQueueSize / p.sizeDivider
+	if p.chunkSize < 1 {
+		p.chunkSize = 1
+	}
+
+	p.storage = config.StorageFactory()
+	p.messageChannel = make(chan amplitudeMessage, config.MaxStorageCapacity)
+
+	if p.client == nil {
+		p.client = internal.NewAmplitudeHTTPClient(
+			config.ServerURL,
+			internal.AmplitudePayloadOptions{MinIDLength: config.MinIDLength},
+			config.Logger,
+			config.ConnectionTimeout,
+		)
+	}
+
+	if p.responseProcessor == nil {
+		p.responseProcessor = internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
+			MaxRetries:             config.FlushMaxRetries,
+			RetryBaseInterval:      config.RetryBaseInterval,
+			RetryThrottledInterval: config.RetryThrottledInterval,
+			Now:                    p.now,
+			Logger:                 config.Logger,
+		})
+	}
+
+	go p.start(p.messageChannel)
+}
+
+func (p *amplitudePlugin) start(messageChannel <-chan amplitudeMessage) {
+	defer func() {
+		if r := recover(); r != nil {
+			p.config.Logger.Errorf("Panic in AmplitudePlugin: %s", r)
+		}
+	}()
+
+	defer func() {
+		p.messageChannelMu.Lock()
+		defer p.messageChannelMu.Unlock()
+
+		p.messageChannel = nil
+	}()
+
+	autoFlushTicker := time.NewTicker(p.config.FlushInterval)
+	defer autoFlushTicker.Stop()
+
+	for {
+		select {
+		case <-autoFlushTicker.C:
+			p.sendEventsFromStorage(nil)
+		case message, ok := <-messageChannel:
+			if !ok {
+				return
 			}
-		}()
 
-		autoFlushTicker := time.NewTicker(p.config.FlushInterval)
-		defer autoFlushTicker.Stop()
+			if message.wg != nil {
+				p.sendEventsFromStorage(message.wg)
+				autoFlushTicker.Reset(p.config.FlushInterval)
+			} else {
+				p.storage.PushNew(&types.StorageEvent{Event: message.event})
 
-		for {
-			select {
-			case <-autoFlushTicker.C:
-				p.sendEventsFromStorage(nil)
-			case message, ok := <-messageChannel:
-				if !ok {
+				if p.storage.Count(p.now()) >= p.chunkSize {
 					p.sendEventsFromStorage(nil)
-
-					return
-				}
-
-				if message.wg != nil {
-					p.sendEventsFromStorage(message.wg)
 					autoFlushTicker.Reset(p.config.FlushInterval)
-				} else {
-					p.storage.PushNew(message.event)
-
-					if p.storage.HasFullChunk() {
-						p.sendEventsFromStorage(nil)
-						autoFlushTicker.Reset(p.config.FlushInterval)
-					}
 				}
 			}
 		}
-	}()
+	}
 }
 
 // Execute processes the event with plugins added to the destination plugin.
 // Then pushed the event to storage waiting to be sent.
 func (p *amplitudePlugin) Execute(event *types.Event) {
-	if !isValidEvent(event) {
+	if !IsValidAmplitudeEvent(event) {
 		p.config.Logger.Errorf("Invalid event, EventType and either UserID or DeviceID cannot be empty: \n\t%+v", event)
 	}
 
@@ -113,11 +152,16 @@ func (p *amplitudePlugin) Flush() {
 	p.messageChannelMu.RLock()
 	defer p.messageChannelMu.RUnlock()
 
+	if p.messageChannel == nil {
+		return
+	}
+
 	p.flush(p.messageChannel)
 }
 
 func (p *amplitudePlugin) flush(messageChannel chan<- amplitudeMessage) {
 	var flushWaitGroup sync.WaitGroup
+
 	flushWaitGroup.Add(1)
 
 	select {
@@ -138,23 +182,34 @@ func (p *amplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 	}
 
 	for {
-		events := p.storage.PullChunk()
-		if len(events) == 0 {
+		storageEvents := p.storage.Pull(p.chunkSize, p.now())
+		if len(storageEvents) == 0 {
 			break
 		}
 
-		response := p.client.Send(amplitudePayload{
+		events := make([]*types.Event, len(storageEvents))
+		for i, storageEvent := range storageEvents {
+			events[i] = storageEvent.Event
+		}
+
+		response := p.client.Send(internal.AmplitudePayload{
 			APIKey: p.config.APIKey,
 			Events: events,
 		})
-		result := p.responseProcessor.Process(events, response)
 
-		if len(result.Events) > 0 && p.config.ExecuteCallback != nil {
+		result := p.responseProcessor.Process(storageEvents, response)
+
+		if result.Code == http.StatusRequestEntityTooLarge && len(result.EventsForRetry) > 0 {
+			p.reduceChunkSize()
+		}
+
+		executeCallback := p.config.ExecuteCallback
+		if executeCallback != nil && len(result.EventsForCallback) > 0 {
 			go func() {
-				for _, event := range result.Events {
-					p.executeCallback(types.ExecuteResult{
+				for _, event := range result.EventsForCallback {
+					executeCallback(types.ExecuteResult{
 						PluginName: p.Name(),
-						Event:      event,
+						Event:      event.Event,
 						Code:       result.Code,
 						Message:    result.Message,
 					})
@@ -166,6 +221,13 @@ func (p *amplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 
 func (p *amplitudePlugin) Shutdown() {
 	p.messageChannelMu.Lock()
+
+	if p.messageChannel == nil {
+		p.messageChannelMu.Unlock()
+
+		return
+	}
+
 	messageChannel := p.messageChannel
 	p.messageChannel = nil
 	p.messageChannelMu.Unlock()
@@ -174,20 +236,33 @@ func (p *amplitudePlugin) Shutdown() {
 	close(messageChannel)
 }
 
-func (p *amplitudePlugin) executeCallback(result types.ExecuteResult) {
-	defer func() {
-		if r := recover(); r != nil {
-			p.config.Logger.Errorf("Panic in callback: %s", r)
-		}
-	}()
-	p.config.ExecuteCallback(result)
+func (p *amplitudePlugin) reduceChunkSize() {
+	p.sizeDivider++
+
+	p.chunkSize = p.config.FlushQueueSize / p.sizeDivider
+	if p.chunkSize < 1 {
+		p.chunkSize = 1
+	}
 }
 
-func isValidEvent(event *types.Event) bool {
+func (p *amplitudePlugin) SetHTTPClient(client internal.AmplitudeHTTPClient) {
+	p.client = client
+}
+
+func (p *amplitudePlugin) SetResponseProcessor(responseProcessor internal.AmplitudeResponseProcessor) {
+	p.responseProcessor = responseProcessor
+}
+
+func (p *amplitudePlugin) SetNow(now func() time.Time) {
+	p.now = now
+}
+
+func IsValidAmplitudeEvent(event *types.Event) bool {
 	userID := event.EventOptions.UserID
 	if userID == "" {
 		userID = event.UserID
 	}
+
 	deviceID := event.EventOptions.DeviceID
 	if deviceID == "" {
 		deviceID = event.DeviceID

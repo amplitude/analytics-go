@@ -1,4 +1,4 @@
-package destination
+package internal
 
 import (
 	"bytes"
@@ -11,11 +11,15 @@ import (
 	"github.com/amplitude/analytics-go/amplitude/types"
 )
 
-func newAmplitudeHTTPClient(
-	serverURL string, options amplitudePayloadOptions, logger types.Logger, connectionTimeout time.Duration,
-) *amplitudeHTTPClient {
-	var payloadOptions *amplitudePayloadOptions
-	if options != (amplitudePayloadOptions{}) {
+type AmplitudeHTTPClient interface {
+	Send(payload AmplitudePayload) AmplitudeResponse
+}
+
+func NewAmplitudeHTTPClient(
+	serverURL string, options AmplitudePayloadOptions, logger types.Logger, connectionTimeout time.Duration,
+) AmplitudeHTTPClient {
+	var payloadOptions *AmplitudePayloadOptions
+	if options != (AmplitudePayloadOptions{}) {
 		payloadOptions = &options
 	}
 
@@ -29,36 +33,31 @@ func newAmplitudeHTTPClient(
 	}
 }
 
-type amplitudePayloadOptions struct {
+type AmplitudePayloadOptions struct {
 	MinIDLength int `json:"min_id_length,omitempty"`
 }
 
-type amplitudePayload struct {
+type AmplitudePayload struct {
 	APIKey  string                   `json:"api_key"`
 	Events  []*types.Event           `json:"events"`
-	Options *amplitudePayloadOptions `json:"options,omitempty"`
-}
-
-type AmplitudeResult struct {
-	Events  []*types.Event
-	Code    int
-	Message string
+	Options *AmplitudePayloadOptions `json:"options,omitempty"`
 }
 
 type amplitudeHTTPClient struct {
 	serverURL      string
 	logger         types.Logger
-	payloadOptions *amplitudePayloadOptions
+	payloadOptions *AmplitudePayloadOptions
 	httpClient     *http.Client
 }
 
-func (c *amplitudeHTTPClient) Send(payload amplitudePayload) AmplitudeResponse {
+func (c *amplitudeHTTPClient) Send(payload AmplitudePayload) AmplitudeResponse {
 	if len(payload.Events) == 0 {
 		return AmplitudeResponse{}
 	}
 
 	payload.Options = c.payloadOptions
 	payloadBytes, err := json.Marshal(payload)
+
 	if err != nil {
 		c.logger.Errorf("payload encoding failed: \n\tError: %w\n\tpayload: %+v", err, payload)
 
@@ -87,6 +86,7 @@ func (c *amplitudeHTTPClient) Send(payload amplitudePayload) AmplitudeResponse {
 			Err: fmt.Errorf("HTTP request failed: %w", err),
 		}
 	}
+
 	defer func() {
 		err := response.Body.Close()
 		if err != nil {
@@ -95,6 +95,7 @@ func (c *amplitudeHTTPClient) Send(payload amplitudePayload) AmplitudeResponse {
 	}()
 
 	c.logger.Infof("HTTP response code: %s", response.Status)
+
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return AmplitudeResponse{
@@ -109,6 +110,7 @@ func (c *amplitudeHTTPClient) Send(payload amplitudePayload) AmplitudeResponse {
 	if json.Valid(body) {
 		_ = json.Unmarshal(body, &amplitudeResponse)
 	}
+
 	amplitudeResponse.Status = response.StatusCode
 
 	return amplitudeResponse

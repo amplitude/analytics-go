@@ -31,6 +31,7 @@ func (w *SafeBeforePluginWrapper) Execute(event *types.Event) (result *types.Eve
 	defer func() {
 		if r := recover(); r != nil {
 			w.Logger.Errorf("Panic in plugin %s.Execute: %s", w.Plugin.Name(), r)
+
 			result = event
 		}
 	}()
@@ -65,6 +66,7 @@ func (w *SafeEnrichmentPluginWrapper) Execute(event *types.Event) (result *types
 	defer func() {
 		if r := recover(); r != nil {
 			w.Logger.Errorf("Panic in plugin %s.Execute: %s", w.Plugin.Name(), r)
+
 			result = event
 		}
 	}()

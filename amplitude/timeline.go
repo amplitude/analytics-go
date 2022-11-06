@@ -59,11 +59,15 @@ func (t *timeline) applyEnrichmentPlugins(event *Event) *Event {
 
 func (t *timeline) applyDestinationPlugins(event *Event) {
 	var wg sync.WaitGroup
+
 	for _, plugin := range t.destinationPlugins {
 		clone := event.Clone()
+
 		wg.Add(1)
+
 		go t.executeDestinationPlugin(plugin, &clone, &wg)
 	}
+
 	wg.Wait()
 }
 
@@ -90,6 +94,7 @@ func (t *timeline) AddPlugin(plugin Plugin) Plugin {
 		if !ok {
 			t.logger.Errorf("Plugin %s doesn't implement Before interface", plugin.Name())
 		}
+
 		wrapper := &internal.SafeBeforePluginWrapper{Plugin: plugin, Logger: t.logger}
 		t.beforePlugins = append(t.beforePlugins, wrapper)
 
@@ -99,6 +104,7 @@ func (t *timeline) AddPlugin(plugin Plugin) Plugin {
 		if !ok {
 			t.logger.Errorf("Plugin %s doesn't implement Enrichment interface", plugin.Name())
 		}
+
 		wrapper := &internal.SafeEnrichmentPluginWrapper{Plugin: plugin, Logger: t.logger}
 		t.enrichmentPlugins = append(t.enrichmentPlugins, wrapper)
 
@@ -108,12 +114,14 @@ func (t *timeline) AddPlugin(plugin Plugin) Plugin {
 		if !ok {
 			t.logger.Errorf("Plugin %s doesn't implement Destination interface", plugin.Name())
 		}
+
 		var wrapper DestinationPlugin
 		if extendedPlugin, ok := plugin.(ExtendedDestinationPlugin); ok {
 			wrapper = &internal.SafeExtendedDestinationPluginWrapper{Plugin: extendedPlugin, Logger: t.logger}
 		} else {
 			wrapper = &internal.SafeDestinationPluginWrapper{Plugin: plugin, Logger: t.logger}
 		}
+
 		t.destinationPlugins = append(t.destinationPlugins, wrapper)
 
 		return wrapper
@@ -133,11 +141,13 @@ func (t *timeline) RemovePlugin(pluginName string) {
 			t.beforePlugins = append(t.beforePlugins[:i], t.beforePlugins[i+1:]...)
 		}
 	}
+
 	for i := len(t.enrichmentPlugins) - 1; i >= 0; i-- {
 		if t.enrichmentPlugins[i].Name() == pluginName {
 			t.enrichmentPlugins = append(t.enrichmentPlugins[:i], t.enrichmentPlugins[i+1:]...)
 		}
 	}
+
 	for i := len(t.destinationPlugins) - 1; i >= 0; i-- {
 		if t.destinationPlugins[i].Name() == pluginName {
 			t.destinationPlugins = append(t.destinationPlugins[:i], t.destinationPlugins[i+1:]...)
@@ -150,15 +160,18 @@ func (t *timeline) Flush() {
 	defer t.mu.RUnlock()
 
 	var wg sync.WaitGroup
+
 	for _, plugin := range t.destinationPlugins {
 		if plugin, ok := plugin.(ExtendedDestinationPlugin); ok {
 			wg.Add(1)
+
 			go func(plugin ExtendedDestinationPlugin) {
 				defer wg.Done()
 				plugin.Flush()
 			}(plugin)
 		}
 	}
+
 	wg.Wait()
 }
 
@@ -167,14 +180,17 @@ func (t *timeline) Shutdown() {
 	defer t.mu.RUnlock()
 
 	var wg sync.WaitGroup
+
 	for _, plugin := range t.destinationPlugins {
 		if plugin, ok := plugin.(ExtendedDestinationPlugin); ok {
 			wg.Add(1)
+
 			go func(plugin ExtendedDestinationPlugin) {
 				defer wg.Done()
 				plugin.Shutdown()
 			}(plugin)
 		}
 	}
+
 	wg.Wait()
 }

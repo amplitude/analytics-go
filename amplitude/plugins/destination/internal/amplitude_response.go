@@ -1,4 +1,4 @@
-package destination
+package internal
 
 import (
 	"net/http"
@@ -71,7 +71,7 @@ func (r AmplitudeResponse) invalidOrSilencedEventIndexes() map[int]struct{} {
 	return result
 }
 
-func (r AmplitudeResponse) throttledEventIndex(eventIndex int) bool {
+func (r AmplitudeResponse) hasThrottledEventAtIndex(eventIndex int) bool {
 	for _, index := range r.ThrottledEvents {
 		if eventIndex == index {
 			return true
@@ -81,10 +81,11 @@ func (r AmplitudeResponse) throttledEventIndex(eventIndex int) bool {
 	return false
 }
 
-func (r AmplitudeResponse) exceedDailyQuota(event *types.Event) bool {
+func (r AmplitudeResponse) hasExceededDailyQuota(event *types.Event) bool {
 	if _, ok := r.ExceededDailyQuotaUsers[event.UserID]; ok {
 		return true
 	}
+
 	if _, ok := r.ExceededDailyQuotaDevices[event.DeviceID]; ok {
 		return true
 	}

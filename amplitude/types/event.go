@@ -1,9 +1,5 @@
 package types
 
-import (
-	"time"
-)
-
 type Event struct {
 	EventType string `json:"event_type"`
 	EventOptions
@@ -17,9 +13,6 @@ type Event struct {
 
 	// DeviceID is a device-specific identifier. The value is ignored if EventOptions.DeviceID is set.
 	DeviceID string `json:"-"`
-
-	RetryAt    time.Time `json:"-"`
-	RetryCount int       `json:"-"`
 }
 
 func (e Event) Clone() Event {

@@ -27,6 +27,7 @@ type Client interface {
 
 func NewClient(config Config) Client {
 	setConfigDefaultValues(&config)
+	setSafeExecuteCallback(&config)
 	config.Logger.Debugf("Client initialized")
 
 	client := &client{
@@ -203,47 +204,73 @@ func (c *client) enabled() bool {
 	return !c.optOut.IsSet()
 }
 
-func setConfigDefaultValues(c *Config) {
-	if c.FlushInterval == 0 {
-		c.FlushInterval = constants.DefaultConfig.FlushInterval
+func setConfigDefaultValues(config *Config) {
+	if config.FlushInterval == 0 {
+		config.FlushInterval = constants.DefaultConfig.FlushInterval
 	}
-	if c.FlushQueueSize == 0 {
-		c.FlushQueueSize = constants.DefaultConfig.FlushQueueSize
+
+	if config.FlushQueueSize == 0 {
+		config.FlushQueueSize = constants.DefaultConfig.FlushQueueSize
 	}
-	if c.FlushSizeDivider == 0 {
-		c.FlushSizeDivider = constants.DefaultConfig.FlushSizeDivider
+
+	if config.FlushSizeDivider == 0 {
+		config.FlushSizeDivider = constants.DefaultConfig.FlushSizeDivider
 	}
-	if c.FlushMaxRetries == 0 {
-		c.FlushMaxRetries = constants.DefaultConfig.FlushMaxRetries
+
+	if config.FlushMaxRetries == 0 {
+		config.FlushMaxRetries = constants.DefaultConfig.FlushMaxRetries
 	}
-	if c.ConnectionTimeout == 0 {
-		c.ConnectionTimeout = constants.DefaultConfig.ConnectionTimeout
+
+	if config.ConnectionTimeout == 0 {
+		config.ConnectionTimeout = constants.DefaultConfig.ConnectionTimeout
 	}
-	if c.MaxStorageCapacity == 0 {
-		c.MaxStorageCapacity = constants.DefaultConfig.MaxStorageCapacity
+
+	if config.MaxStorageCapacity == 0 {
+		config.MaxStorageCapacity = constants.DefaultConfig.MaxStorageCapacity
 	}
-	if c.RetryBaseInterval == 0 {
-		c.RetryBaseInterval = constants.DefaultConfig.RetryBaseInterval
+
+	if config.RetryBaseInterval == 0 {
+		config.RetryBaseInterval = constants.DefaultConfig.RetryBaseInterval
 	}
-	if c.RetryThrottledInterval == 0 {
-		c.RetryThrottledInterval = constants.DefaultConfig.RetryThrottledInterval
+
+	if config.RetryThrottledInterval == 0 {
+		config.RetryThrottledInterval = constants.DefaultConfig.RetryThrottledInterval
 	}
-	if c.Logger == nil {
-		c.Logger = loggers.NewDefaultLogger()
+
+	if config.Logger == nil {
+		config.Logger = loggers.NewDefaultLogger()
 	}
-	if c.StorageFactory == nil {
-		c.StorageFactory = func() EventStorage {
-			return storages.NewInMemoryEventStorage(c.FlushQueueSize, c.FlushSizeDivider)
-		}
+
+	if config.StorageFactory == nil {
+		config.StorageFactory = storages.NewInMemoryEventStorage
 	}
-	if c.ServerZone == "" {
-		c.ServerZone = constants.DefaultConfig.ServerZone
+
+	if config.ServerZone == "" {
+		config.ServerZone = constants.DefaultConfig.ServerZone
 	}
-	if c.ServerURL == "" {
-		if c.UseBatch {
-			c.ServerURL = constants.ServerBatchURLs[c.ServerZone]
+
+	if config.ServerURL == "" {
+		if config.UseBatch {
+			config.ServerURL = constants.ServerBatchURLs[config.ServerZone]
 		} else {
-			c.ServerURL = constants.ServerURLs[c.ServerZone]
+			config.ServerURL = constants.ServerURLs[config.ServerZone]
 		}
+	}
+}
+
+func setSafeExecuteCallback(config *Config) {
+	executeCallback := config.ExecuteCallback
+	if executeCallback == nil {
+		return
+	}
+
+	config.ExecuteCallback = func(result ExecuteResult) {
+		defer func() {
+			if r := recover(); r != nil {
+				config.Logger.Errorf("Panic in callback: %s", r)
+			}
+		}()
+
+		executeCallback(result)
 	}
 }
