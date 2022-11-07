@@ -88,9 +88,15 @@ func (h *amplitudeHTTPClient) send(payload clientPayload) sendResult {
 	if err != nil {
 		h.logger.Errorf("HTTP request failed: %s", err)
 
-		return sendResult{
-			Code:    response.StatusCode,
-			Message: fmt.Sprintf("HTTP request failed: %s", err),
+		if response != nil {
+			return sendResult{
+				Code:    response.StatusCode,
+				Message: fmt.Sprintf("HTTP request failed: %s", err),
+			}
+		} else {
+			return sendResult{
+				Message: fmt.Sprintf("HTTP request failed: %s", err),
+			}
 		}
 	}
 	defer func() {
