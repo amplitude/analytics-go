@@ -24,10 +24,9 @@ type ClientSuite struct {
 func (t *ClientSuite) TestTrack() {
 	config := amplitude.NewConfig("your_api_key")
 
-	client := amplitude.NewClient(config)
-	client.Remove("context")
-	client.Remove("amplitude")
+	client := t.createClient(config)
 	client.Add(&testBeforePlugin{})
+	client.Add(&testEnrichmentPlugin{})
 
 	destPlugin := &testDestinationPlugin{}
 	client.Add(destPlugin)
@@ -42,23 +41,21 @@ func (t *ClientSuite) TestTrack() {
     "time": 1,
     "insert_id": "insert-1",
     "ip": "IP 1",
+    "city": "IP 1 city",
     "event_properties": {
       "prop-1": 1
     }
 }
 ]`, string(events))
-
-	client.Shutdown()
 }
 
 func (t *ClientSuite) TestIdentify() {
 	config := amplitude.NewConfig("your_api_key")
 	config.FlushQueueSize = 3
 
-	client := amplitude.NewClient(config)
-	client.Remove("context")
-	client.Remove("amplitude")
+	client := t.createClient(config)
 	client.Add(&testBeforePlugin{})
+	client.Add(&testEnrichmentPlugin{})
 
 	destPlugin := &testDestinationPlugin{}
 	client.Add(destPlugin)
@@ -73,6 +70,7 @@ func (t *ClientSuite) TestIdentify() {
     "event_type": "$identify",
     "user_id": "user-1",
     "ip": "IP 1",
+    "city": "IP 1 city",
     "user_properties": {
       "$set": {
         "property": "value"
@@ -80,18 +78,15 @@ func (t *ClientSuite) TestIdentify() {
     }
 }
 ]`, string(events))
-
-	client.Shutdown()
 }
 
 func (t *ClientSuite) TestGroupIdentify() {
 	config := amplitude.NewConfig("your_api_key")
 	config.FlushQueueSize = 3
 
-	client := amplitude.NewClient(config)
-	client.Remove("context")
-	client.Remove("amplitude")
+	client := t.createClient(config)
 	client.Add(&testBeforePlugin{})
+	client.Add(&testEnrichmentPlugin{})
 
 	destPlugin := &testDestinationPlugin{}
 	client.Add(destPlugin)
@@ -106,6 +101,7 @@ func (t *ClientSuite) TestGroupIdentify() {
     "event_type": "$groupidentify",
     "device_id": "device-1",
     "ip": "IP 1",
+    "city": "IP 1 city",
     "group_properties": {
       "$set": {
         "property": "value"
@@ -116,18 +112,15 @@ func (t *ClientSuite) TestGroupIdentify() {
     }
   }
 ]`, string(events))
-
-	client.Shutdown()
 }
 
 func (t *ClientSuite) TestSetGroup() {
 	config := amplitude.NewConfig("your_api_key")
 	config.FlushQueueSize = 3
 
-	client := amplitude.NewClient(config)
-	client.Remove("context")
-	client.Remove("amplitude")
+	client := t.createClient(config)
 	client.Add(&testBeforePlugin{})
+	client.Add(&testEnrichmentPlugin{})
 
 	destPlugin := &testDestinationPlugin{}
 	client.Add(destPlugin)
@@ -140,6 +133,7 @@ func (t *ClientSuite) TestSetGroup() {
     "event_type": "$identify",
     "device_id": "device-1",
     "ip": "IP 1",
+    "city": "IP 1 city",
     "user_properties": {
       "$set": {
         "group-type": ["group-name-1", "group-name-2"]
@@ -147,18 +141,15 @@ func (t *ClientSuite) TestSetGroup() {
     }
   }
 ]`, string(events))
-
-	client.Shutdown()
 }
 
 func (t *ClientSuite) TestRevenue() {
 	config := amplitude.NewConfig("your_api_key")
 	config.FlushQueueSize = 3
 
-	client := amplitude.NewClient(config)
-	client.Remove("context")
-	client.Remove("amplitude")
+	client := t.createClient(config)
 	client.Add(&testBeforePlugin{})
+	client.Add(&testEnrichmentPlugin{})
 
 	destPlugin := &testDestinationPlugin{}
 	client.Add(destPlugin)
@@ -179,6 +170,7 @@ func (t *ClientSuite) TestRevenue() {
     "event_type": "revenue_amount",
     "device_id": "device-1",
     "ip": "IP 1",
+    "city": "IP 1 city",
     "event_properties": {
       "$price": 12.3,
       "$quantity": 45,
@@ -190,15 +182,51 @@ func (t *ClientSuite) TestRevenue() {
     }
   }
 ]`, string(events))
+}
+
+func (t *ClientSuite) TestFlush() {
+	logger := &mockLogger{}
+	logger.On("Debugf", mock.Anything, mock.Anything).Return()
+
+	config := amplitude.NewConfig("your_api_key")
+	config.Logger = logger
+
+	client := t.createClient(config)
+
+	destPlugin := &testDestinationPlugin{}
+	destPlugin.On("Flush").Once()
+	client.Add(destPlugin)
+
+	client.Flush()
+
+	destPlugin.AssertExpectations(t.T())
+	logger.AssertExpectations(t.T())
+}
+
+func (t *ClientSuite) TestShutdown() {
+	logger := &mockLogger{}
+	logger.On("Debugf", mock.Anything, mock.Anything).Return()
+
+	config := amplitude.NewConfig("your_api_key")
+	config.Logger = logger
+
+	client := t.createClient(config)
+
+	destPlugin := &testDestinationPlugin{}
+	destPlugin.On("Shutdown").Once()
+	client.Add(destPlugin)
 
 	client.Shutdown()
+
+	destPlugin.AssertExpectations(t.T())
+	logger.AssertExpectations(t.T())
 }
 
 func (t *ClientSuite) TestPanicInPlugins() {
 	logger := &mockLogger{}
 	logger.On("Debugf", mock.Anything, mock.Anything).Return()
 	logger.On("Errorf", "Panic in plugin %s.Execute: %s", []interface{}{"test-before-plugin", "panic in test-before-plugin"}).Return().Once()
-	logger.On("Errorf", "Panic in plugin %s.Setup: %s", []interface{}{"test-destination-plugin", "panic in test-destination-plugin"}).Return().Once()
+	logger.On("Errorf", "Panic in plugin %s.Execute: %s", []interface{}{"test-enrichment-plugin", "panic in test-enrichment-plugin"}).Return().Once()
 	logger.On("Errorf", "Panic in plugin %s.Execute: %s", []interface{}{"test-destination-plugin", "panic in test-destination-plugin"}).Return().Once()
 
 	config := amplitude.NewConfig("your_api_key")
@@ -208,10 +236,9 @@ func (t *ClientSuite) TestPanicInPlugins() {
 		panic("callback panic")
 	}
 
-	client := amplitude.NewClient(config)
-	client.Remove("context")
-	client.Remove("amplitude")
+	client := t.createClient(config)
 	client.Add(&testBeforePlugin{raisePanic: true})
+	client.Add(&testEnrichmentPlugin{raisePanic: true})
 
 	destPlugin := &testDestinationPlugin{raisePanic: true}
 	client.Add(destPlugin)
@@ -221,8 +248,14 @@ func (t *ClientSuite) TestPanicInPlugins() {
 	t.Require().Equal(0, len(destPlugin.events))
 
 	logger.AssertExpectations(t.T())
+}
 
-	client.Shutdown()
+func (t *ClientSuite) createClient(config types.Config) amplitude.Client {
+	client := amplitude.NewClient(config)
+	client.Remove("context")
+	client.Remove("amplitude")
+
+	return client
 }
 
 func (t *ClientSuite) createEvent(index int) amplitude.Event {
@@ -269,7 +302,33 @@ func (p *testBeforePlugin) Execute(event *amplitude.Event) *amplitude.Event {
 	return event
 }
 
+type testEnrichmentPlugin struct {
+	raisePanic bool
+}
+
+func (p *testEnrichmentPlugin) Name() string {
+	return "test-enrichment-plugin"
+}
+
+func (p *testEnrichmentPlugin) Type() amplitude.PluginType {
+	return amplitude.PluginTypeEnrichment
+}
+
+func (p *testEnrichmentPlugin) Setup(types.Config) {
+}
+
+func (p *testEnrichmentPlugin) Execute(event *amplitude.Event) *amplitude.Event {
+	if p.raisePanic {
+		panic("panic in test-enrichment-plugin")
+	}
+
+	event.City = event.IP + " city"
+
+	return event
+}
+
 type testDestinationPlugin struct {
+	mock.Mock
 	raisePanic bool
 	events     []*amplitude.Event
 }
@@ -283,9 +342,6 @@ func (p *testDestinationPlugin) Type() amplitude.PluginType {
 }
 
 func (p *testDestinationPlugin) Setup(types.Config) {
-	if p.raisePanic {
-		panic("panic in test-destination-plugin")
-	}
 }
 
 func (p *testDestinationPlugin) Execute(event *amplitude.Event) {
@@ -294,6 +350,14 @@ func (p *testDestinationPlugin) Execute(event *amplitude.Event) {
 	}
 
 	p.events = append(p.events, event)
+}
+
+func (p *testDestinationPlugin) Flush() {
+	p.Called()
+}
+
+func (p *testDestinationPlugin) Shutdown() {
+	p.Called()
 }
 
 type mockLogger struct {

@@ -5,8 +5,9 @@ import (
 )
 
 type SafeBeforePluginWrapper struct {
-	Plugin types.BeforePlugin
-	Logger types.Logger
+	Plugin        types.BeforePlugin
+	Logger        types.Logger
+	isInitialized bool
 }
 
 func (w *SafeBeforePluginWrapper) Name() string {
@@ -25,9 +26,14 @@ func (w *SafeBeforePluginWrapper) Setup(config types.Config) {
 	}()
 
 	w.Plugin.Setup(config)
+	w.isInitialized = true
 }
 
 func (w *SafeBeforePluginWrapper) Execute(event *types.Event) (result *types.Event) {
+	if !w.isInitialized {
+		return event
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			w.Logger.Errorf("Panic in plugin %s.Execute: %s", w.Plugin.Name(), r)
@@ -40,8 +46,9 @@ func (w *SafeBeforePluginWrapper) Execute(event *types.Event) (result *types.Eve
 }
 
 type SafeEnrichmentPluginWrapper struct {
-	Plugin types.EnrichmentPlugin
-	Logger types.Logger
+	Plugin        types.EnrichmentPlugin
+	Logger        types.Logger
+	isInitialized bool
 }
 
 func (w *SafeEnrichmentPluginWrapper) Name() string {
@@ -60,9 +67,14 @@ func (w *SafeEnrichmentPluginWrapper) Setup(config types.Config) {
 	}()
 
 	w.Plugin.Setup(config)
+	w.isInitialized = true
 }
 
 func (w *SafeEnrichmentPluginWrapper) Execute(event *types.Event) (result *types.Event) {
+	if !w.isInitialized {
+		return event
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			w.Logger.Errorf("Panic in plugin %s.Execute: %s", w.Plugin.Name(), r)
@@ -75,8 +87,9 @@ func (w *SafeEnrichmentPluginWrapper) Execute(event *types.Event) (result *types
 }
 
 type SafeDestinationPluginWrapper struct {
-	Plugin types.DestinationPlugin
-	Logger types.Logger
+	Plugin        types.DestinationPlugin
+	Logger        types.Logger
+	isInitialized bool
 }
 
 func (w *SafeDestinationPluginWrapper) Name() string {
@@ -95,9 +108,14 @@ func (w *SafeDestinationPluginWrapper) Setup(config types.Config) {
 	}()
 
 	w.Plugin.Setup(config)
+	w.isInitialized = true
 }
 
 func (w *SafeDestinationPluginWrapper) Execute(event *types.Event) {
+	if !w.isInitialized {
+		return
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			w.Logger.Errorf("Panic in plugin %s.Execute: %s", w.Plugin.Name(), r)
@@ -108,8 +126,9 @@ func (w *SafeDestinationPluginWrapper) Execute(event *types.Event) {
 }
 
 type SafeExtendedDestinationPluginWrapper struct {
-	Plugin types.ExtendedDestinationPlugin
-	Logger types.Logger
+	Plugin        types.ExtendedDestinationPlugin
+	Logger        types.Logger
+	isInitialized bool
 }
 
 func (w *SafeExtendedDestinationPluginWrapper) Name() string {
@@ -128,9 +147,14 @@ func (w *SafeExtendedDestinationPluginWrapper) Setup(config types.Config) {
 	}()
 
 	w.Plugin.Setup(config)
+	w.isInitialized = true
 }
 
 func (w *SafeExtendedDestinationPluginWrapper) Execute(event *types.Event) {
+	if !w.isInitialized {
+		return
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			w.Logger.Errorf("Panic in plugin %s.Execute: %s", w.Plugin.Name(), r)
@@ -141,6 +165,10 @@ func (w *SafeExtendedDestinationPluginWrapper) Execute(event *types.Event) {
 }
 
 func (w *SafeExtendedDestinationPluginWrapper) Flush() {
+	if !w.isInitialized {
+		return
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			w.Logger.Errorf("Panic in plugin %s.Flush: %s", w.Plugin.Name(), r)
@@ -151,6 +179,10 @@ func (w *SafeExtendedDestinationPluginWrapper) Flush() {
 }
 
 func (w *SafeExtendedDestinationPluginWrapper) Shutdown() {
+	if !w.isInitialized {
+		return
+	}
+
 	defer func() {
 		if r := recover(); r != nil {
 			w.Logger.Errorf("Panic in plugin %s.Shutdown: %s", w.Plugin.Name(), r)
