@@ -14,6 +14,12 @@ import (
 	"github.com/amplitude/analytics-go/amplitude/types"
 )
 
+type AmplitudePlugin interface {
+	types.ExtendedDestinationPlugin
+	SetHTTPClient(client internal.AmplitudeHTTPClient)
+	SetResponseProcessor(responseProcessor internal.AmplitudeResponseProcessor)
+}
+
 func TestAmplitudePlugin(t *testing.T) {
 	suite.Run(t, new(AmplitudePluginSuite))
 }
@@ -79,9 +85,7 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_Basic() {
 }
 
 func (t *AmplitudePluginSuite) TestAmplitudePlugin_FlushInterval() {
-	now := time.Now()
-
-	plugin := destination.NewAmplitudePlugin().(destination.InternalDestinationPlugin)
+	plugin := destination.NewAmplitudePlugin().(AmplitudePlugin)
 
 	flushInterval := time.Millisecond * 100
 	flushQueueSize := 3
@@ -92,11 +96,11 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_FlushInterval() {
 
 	storage := &mockStorage{}
 	storage.On("PushNew", storageEvent1).Once()
-	storage.On("Count", now).Return(1).Once()
+	storage.On("Count", mock.Anything).Return(1).Once()
 	storage.On("PushNew", storageEvent2).Once()
-	storage.On("Count", now).Return(2).Once()
-	storage.On("Pull", flushQueueSize, now).Return([]*types.StorageEvent{storageEvent1, storageEvent2}).Once()
-	storage.On("Pull", flushQueueSize, now).Return(nil).Once()
+	storage.On("Count", mock.Anything).Return(2).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return([]*types.StorageEvent{storageEvent1, storageEvent2}).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return(nil).Once()
 
 	httpClient := &mockHTTPClient{}
 	httpClient.On("Send", internal.AmplitudePayload{
@@ -112,9 +116,6 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_FlushInterval() {
 
 	plugin.SetHTTPClient(httpClient)
 	plugin.SetResponseProcessor(responseProcessor)
-	plugin.SetNow(func() time.Time {
-		return now
-	})
 
 	plugin.Setup(types.Config{
 		APIKey:             "my-api-key",
@@ -137,15 +138,13 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_FlushInterval() {
 	responseProcessor.AssertExpectations(t.T())
 	storage.AssertExpectations(t.T())
 
-	storage.On("Pull", flushQueueSize, now).Return(nil).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return(nil).Once()
 
 	plugin.Shutdown()
 }
 
 func (t *AmplitudePluginSuite) TestAmplitudePlugin_FlushQueueSize() {
-	now := time.Now()
-
-	plugin := destination.NewAmplitudePlugin().(destination.InternalDestinationPlugin)
+	plugin := destination.NewAmplitudePlugin().(AmplitudePlugin)
 
 	flushInterval := time.Second * 100
 	flushQueueSize := 2
@@ -156,11 +155,11 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_FlushQueueSize() {
 
 	storage := &mockStorage{}
 	storage.On("PushNew", storageEvent1).Once()
-	storage.On("Count", now).Return(1).Once()
+	storage.On("Count", mock.Anything).Return(1).Once()
 	storage.On("PushNew", storageEvent2).Once()
-	storage.On("Count", now).Return(2).Once()
-	storage.On("Pull", flushQueueSize, now).Return([]*types.StorageEvent{storageEvent1, storageEvent2}).Once()
-	storage.On("Pull", flushQueueSize, now).Return(nil).Once()
+	storage.On("Count", mock.Anything).Return(2).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return([]*types.StorageEvent{storageEvent1, storageEvent2}).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return(nil).Once()
 
 	httpClient := &mockHTTPClient{}
 	httpClient.On("Send", internal.AmplitudePayload{
@@ -176,9 +175,6 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_FlushQueueSize() {
 
 	plugin.SetHTTPClient(httpClient)
 	plugin.SetResponseProcessor(responseProcessor)
-	plugin.SetNow(func() time.Time {
-		return now
-	})
 
 	plugin.Setup(types.Config{
 		APIKey:             "my-api-key",
@@ -201,15 +197,13 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_FlushQueueSize() {
 	responseProcessor.AssertExpectations(t.T())
 	storage.AssertExpectations(t.T())
 
-	storage.On("Pull", flushQueueSize, now).Return(nil).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return(nil).Once()
 
 	plugin.Shutdown()
 }
 
 func (t *AmplitudePluginSuite) TestAmplitudePlugin_ExplicitFlush() {
-	now := time.Now()
-
-	plugin := destination.NewAmplitudePlugin().(destination.InternalDestinationPlugin)
+	plugin := destination.NewAmplitudePlugin().(AmplitudePlugin)
 
 	flushInterval := time.Second * 100
 	flushQueueSize := 10
@@ -220,11 +214,11 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ExplicitFlush() {
 
 	storage := &mockStorage{}
 	storage.On("PushNew", storageEvent1).Once()
-	storage.On("Count", now).Return(1).Once()
+	storage.On("Count", mock.Anything).Return(1).Once()
 	storage.On("PushNew", storageEvent2).Once()
-	storage.On("Count", now).Return(2).Once()
-	storage.On("Pull", flushQueueSize, now).Return([]*types.StorageEvent{storageEvent1, storageEvent2}).Once()
-	storage.On("Pull", flushQueueSize, now).Return(nil).Once()
+	storage.On("Count", mock.Anything).Return(2).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return([]*types.StorageEvent{storageEvent1, storageEvent2}).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return(nil).Once()
 
 	httpClient := &mockHTTPClient{}
 	httpClient.On("Send", internal.AmplitudePayload{
@@ -240,9 +234,6 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ExplicitFlush() {
 
 	plugin.SetHTTPClient(httpClient)
 	plugin.SetResponseProcessor(responseProcessor)
-	plugin.SetNow(func() time.Time {
-		return now
-	})
 
 	plugin.Setup(types.Config{
 		APIKey:             "my-api-key",
@@ -266,15 +257,13 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ExplicitFlush() {
 	responseProcessor.AssertExpectations(t.T())
 	storage.AssertExpectations(t.T())
 
-	storage.On("Pull", flushQueueSize, now).Return(nil).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return(nil).Once()
 
 	plugin.Shutdown()
 }
 
 func (t *AmplitudePluginSuite) TestAmplitudePlugin_ExplicitShutdown() {
-	now := time.Now()
-
-	plugin := destination.NewAmplitudePlugin().(destination.InternalDestinationPlugin)
+	plugin := destination.NewAmplitudePlugin().(AmplitudePlugin)
 
 	flushInterval := time.Second * 100
 	flushQueueSize := 10
@@ -285,11 +274,11 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ExplicitShutdown() {
 
 	storage := &mockStorage{}
 	storage.On("PushNew", storageEvent1).Once()
-	storage.On("Count", now).Return(1).Once()
+	storage.On("Count", mock.Anything).Return(1).Once()
 	storage.On("PushNew", storageEvent2).Once()
-	storage.On("Count", now).Return(2).Once()
-	storage.On("Pull", flushQueueSize, now).Return([]*types.StorageEvent{storageEvent1, storageEvent2}).Once()
-	storage.On("Pull", flushQueueSize, now).Return(nil).Once()
+	storage.On("Count", mock.Anything).Return(2).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return([]*types.StorageEvent{storageEvent1, storageEvent2}).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return(nil).Once()
 
 	httpClient := &mockHTTPClient{}
 	httpClient.On("Send", internal.AmplitudePayload{
@@ -305,9 +294,6 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ExplicitShutdown() {
 
 	plugin.SetHTTPClient(httpClient)
 	plugin.SetResponseProcessor(responseProcessor)
-	plugin.SetNow(func() time.Time {
-		return now
-	})
 
 	plugin.Setup(types.Config{
 		APIKey:             "my-api-key",
@@ -333,9 +319,7 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ExplicitShutdown() {
 }
 
 func (t *AmplitudePluginSuite) TestAmplitudePlugin_ReduceChunkSize() {
-	now := time.Now()
-
-	plugin := destination.NewAmplitudePlugin().(destination.InternalDestinationPlugin)
+	plugin := destination.NewAmplitudePlugin().(AmplitudePlugin)
 
 	flushInterval := time.Second * 100
 	flushQueueSize := 2
@@ -346,13 +330,13 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ReduceChunkSize() {
 
 	storage := &mockStorage{}
 	storage.On("PushNew", storageEvent1).Once()
-	storage.On("Count", now).Return(1).Once()
+	storage.On("Count", mock.Anything).Return(1).Once()
 	storage.On("PushNew", storageEvent2).Once()
-	storage.On("Count", now).Return(2).Once()
-	storage.On("Pull", flushQueueSize, now).Return([]*types.StorageEvent{storageEvent1, storageEvent2}).Once()
-	storage.On("Pull", flushQueueSize/2, now).Return([]*types.StorageEvent{storageEvent1}).Once()
-	storage.On("Pull", flushQueueSize/2, now).Return([]*types.StorageEvent{storageEvent2}).Once()
-	storage.On("Pull", flushQueueSize/2, now).Return(nil).Once()
+	storage.On("Count", mock.Anything).Return(2).Once()
+	storage.On("Pull", flushQueueSize, mock.Anything).Return([]*types.StorageEvent{storageEvent1, storageEvent2}).Once()
+	storage.On("Pull", flushQueueSize/2, mock.Anything).Return([]*types.StorageEvent{storageEvent1}).Once()
+	storage.On("Pull", flushQueueSize/2, mock.Anything).Return([]*types.StorageEvent{storageEvent2}).Once()
+	storage.On("Pull", flushQueueSize/2, mock.Anything).Return(nil).Once()
 
 	httpClient := &mockHTTPClient{}
 	httpClient.On("Send", internal.AmplitudePayload{
@@ -384,9 +368,6 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ReduceChunkSize() {
 
 	plugin.SetHTTPClient(httpClient)
 	plugin.SetResponseProcessor(responseProcessor)
-	plugin.SetNow(func() time.Time {
-		return now
-	})
 
 	plugin.Setup(types.Config{
 		APIKey:             "my-api-key",
@@ -409,7 +390,7 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ReduceChunkSize() {
 	responseProcessor.AssertExpectations(t.T())
 	storage.AssertExpectations(t.T())
 
-	storage.On("Pull", flushQueueSize/2, now).Return(nil).Once()
+	storage.On("Pull", flushQueueSize/2, mock.Anything).Return(nil).Once()
 
 	plugin.Shutdown()
 }

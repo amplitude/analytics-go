@@ -14,13 +14,6 @@ func NewAmplitudePlugin() types.ExtendedDestinationPlugin {
 	return &amplitudePlugin{}
 }
 
-type InternalDestinationPlugin interface {
-	types.ExtendedDestinationPlugin
-	SetHTTPClient(client internal.AmplitudeHTTPClient)
-	SetResponseProcessor(responseProcessor internal.AmplitudeResponseProcessor)
-	SetNow(now func() time.Time)
-}
-
 type amplitudePlugin struct {
 	config            types.Config
 	storage           types.EventStorage
@@ -29,7 +22,6 @@ type amplitudePlugin struct {
 	messageChannel    chan amplitudeMessage
 	messageChannelMu  sync.RWMutex
 
-	now         func() time.Time
 	chunkSize   int
 	sizeDivider int
 }
@@ -49,9 +41,6 @@ func (p *amplitudePlugin) Type() types.PluginType {
 
 func (p *amplitudePlugin) Setup(config types.Config) {
 	p.config = config
-	if p.now == nil {
-		p.now = time.Now
-	}
 
 	p.sizeDivider = config.FlushSizeDivider
 	if p.sizeDivider < 1 {
@@ -80,7 +69,7 @@ func (p *amplitudePlugin) Setup(config types.Config) {
 			MaxRetries:             config.FlushMaxRetries,
 			RetryBaseInterval:      config.RetryBaseInterval,
 			RetryThrottledInterval: config.RetryThrottledInterval,
-			Now:                    p.now,
+			Now:                    time.Now,
 			Logger:                 config.Logger,
 		})
 	}
@@ -120,7 +109,7 @@ func (p *amplitudePlugin) start(messageChannel <-chan amplitudeMessage) {
 			} else {
 				p.storage.PushNew(&types.StorageEvent{Event: message.event})
 
-				if p.storage.Count(p.now()) >= p.chunkSize {
+				if p.storage.Count(time.Now()) >= p.chunkSize {
 					p.sendEventsFromStorage(nil)
 					autoFlushTicker.Reset(p.config.FlushInterval)
 				}
@@ -182,7 +171,7 @@ func (p *amplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 	}
 
 	for {
-		storageEvents := p.storage.Pull(p.chunkSize, p.now())
+		storageEvents := p.storage.Pull(p.chunkSize, time.Now())
 		if len(storageEvents) == 0 {
 			break
 		}
@@ -251,10 +240,6 @@ func (p *amplitudePlugin) SetHTTPClient(client internal.AmplitudeHTTPClient) {
 
 func (p *amplitudePlugin) SetResponseProcessor(responseProcessor internal.AmplitudeResponseProcessor) {
 	p.responseProcessor = responseProcessor
-}
-
-func (p *amplitudePlugin) SetNow(now func() time.Time) {
-	p.now = now
 }
 
 func IsValidAmplitudeEvent(event *types.Event) bool {
