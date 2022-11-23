@@ -46,3 +46,23 @@ type EventOptions struct {
 func (eo *EventOptions) SetTime(time time.Time) {
 	eo.Time = time.UnixMilli()
 }
+
+func (eo *EventOptions) Clone() *EventOptions {
+	if eo == nil {
+		return nil
+	}
+
+	clone := *eo
+
+	if eo.Plan != nil {
+		plan := *eo.Plan
+		clone.Plan = &plan
+	}
+
+	if eo.IngestionMetadata != nil {
+		ingestionMetadata := *eo.IngestionMetadata
+		clone.IngestionMetadata = &ingestionMetadata
+	}
+
+	return &clone
+}

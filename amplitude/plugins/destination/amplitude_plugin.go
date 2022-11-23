@@ -1,8 +1,11 @@
 package destination
 
 import (
+	"net/http"
 	"sync"
 	"time"
+
+	"github.com/amplitude/analytics-go/amplitude/plugins/destination/internal"
 
 	"github.com/amplitude/analytics-go/amplitude/types"
 )
@@ -12,11 +15,15 @@ func NewAmplitudePlugin() types.ExtendedDestinationPlugin {
 }
 
 type amplitudePlugin struct {
-	config           types.Config
-	storage          types.EventStorage
-	client           *amplitudeHTTPClient
-	messageChannel   chan amplitudeMessage
-	messageChannelMu sync.RWMutex
+	config            types.Config
+	storage           types.EventStorage
+	client            internal.AmplitudeHTTPClient
+	responseProcessor internal.AmplitudeResponseProcessor
+	messageChannel    chan amplitudeMessage
+	messageChannelMu  sync.RWMutex
+
+	chunkSize   int
+	sizeDivider int
 }
 
 type amplitudeMessage struct {
@@ -34,51 +41,87 @@ func (p *amplitudePlugin) Type() types.PluginType {
 
 func (p *amplitudePlugin) Setup(config types.Config) {
 	p.config = config
+
+	p.sizeDivider = config.FlushSizeDivider
+	if p.sizeDivider < 1 {
+		p.sizeDivider = 1
+	}
+
+	p.chunkSize = config.FlushQueueSize / p.sizeDivider
+	if p.chunkSize < 1 {
+		p.chunkSize = 1
+	}
+
 	p.storage = config.StorageFactory()
 	p.messageChannel = make(chan amplitudeMessage, config.MaxStorageCapacity)
-	p.client = newAmplitudeHTTPClient(
-		config.ServerURL,
-		clientPayloadOptions{MinIDLength: config.MinIDLength},
-		config.Logger,
-		config.ConnectionTimeout,
-	)
 
-	messageChannel := p.messageChannel
-	go func() {
-		autoFlushTicker := time.NewTicker(p.config.FlushInterval)
-		defer autoFlushTicker.Stop()
+	if p.client == nil {
+		p.client = internal.NewAmplitudeHTTPClient(
+			config.ServerURL,
+			internal.AmplitudePayloadOptions{MinIDLength: config.MinIDLength},
+			config.Logger,
+			config.ConnectionTimeout,
+		)
+	}
 
-		for {
-			select {
-			case <-autoFlushTicker.C:
-				p.sendEventsFromStorage(nil)
-			case message, ok := <-messageChannel:
-				if !ok {
+	if p.responseProcessor == nil {
+		p.responseProcessor = internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
+			MaxRetries:             config.FlushMaxRetries,
+			RetryBaseInterval:      config.RetryBaseInterval,
+			RetryThrottledInterval: config.RetryThrottledInterval,
+			Now:                    time.Now,
+			Logger:                 config.Logger,
+		})
+	}
+
+	go p.start(p.messageChannel)
+}
+
+func (p *amplitudePlugin) start(messageChannel <-chan amplitudeMessage) {
+	defer func() {
+		if r := recover(); r != nil {
+			p.config.Logger.Errorf("Panic in AmplitudePlugin: %s", r)
+		}
+	}()
+
+	defer func() {
+		p.messageChannelMu.Lock()
+		defer p.messageChannelMu.Unlock()
+
+		p.messageChannel = nil
+	}()
+
+	autoFlushTicker := time.NewTicker(p.config.FlushInterval)
+	defer autoFlushTicker.Stop()
+
+	for {
+		select {
+		case <-autoFlushTicker.C:
+			p.sendEventsFromStorage(nil)
+		case message, ok := <-messageChannel:
+			if !ok {
+				return
+			}
+
+			if message.wg != nil {
+				p.sendEventsFromStorage(message.wg)
+				autoFlushTicker.Reset(p.config.FlushInterval)
+			} else {
+				p.storage.PushNew(&types.StorageEvent{Event: message.event})
+
+				if p.storage.Count(time.Now()) >= p.chunkSize {
 					p.sendEventsFromStorage(nil)
-
-					return
-				}
-
-				if message.wg != nil {
-					p.sendEventsFromStorage(message.wg)
 					autoFlushTicker.Reset(p.config.FlushInterval)
-				} else {
-					p.storage.Push(message.event)
-
-					if p.storage.Len() >= p.config.FlushQueueSize {
-						p.sendEventsFromStorage(nil)
-						autoFlushTicker.Reset(p.config.FlushInterval)
-					}
 				}
 			}
 		}
-	}()
+	}
 }
 
 // Execute processes the event with plugins added to the destination plugin.
 // Then pushed the event to storage waiting to be sent.
 func (p *amplitudePlugin) Execute(event *types.Event) {
-	if !isValidEvent(event) {
+	if !IsValidAmplitudeEvent(event) {
 		p.config.Logger.Errorf("Invalid event, EventType and either UserID or DeviceID cannot be empty: \n\t%+v", event)
 	}
 
@@ -98,11 +141,16 @@ func (p *amplitudePlugin) Flush() {
 	p.messageChannelMu.RLock()
 	defer p.messageChannelMu.RUnlock()
 
+	if p.messageChannel == nil {
+		return
+	}
+
 	p.flush(p.messageChannel)
 }
 
 func (p *amplitudePlugin) flush(messageChannel chan<- amplitudeMessage) {
 	var flushWaitGroup sync.WaitGroup
+
 	flushWaitGroup.Add(1)
 
 	select {
@@ -122,33 +170,53 @@ func (p *amplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 		defer wg.Done()
 	}
 
-	events := p.storage.Pull()
-	if len(events) == 0 {
-		return
-	}
+	for {
+		storageEvents := p.storage.Pull(p.chunkSize, time.Now())
+		if len(storageEvents) == 0 {
+			break
+		}
 
-	result := p.client.send(clientPayload{
-		APIKey: p.config.APIKey,
-		Events: events,
-	})
+		events := make([]*types.Event, len(storageEvents))
+		for i, storageEvent := range storageEvents {
+			events[i] = storageEvent.Event
+		}
 
-	executeCallback := p.config.ExecuteCallback
-	if executeCallback != nil {
-		go func() {
-			for _, event := range events {
-				executeCallback(types.ExecuteResult{
-					PluginName: p.Name(),
-					Event:      event,
-					Code:       result.Code,
-					Message:    result.Message,
-				})
-			}
-		}()
+		response := p.client.Send(internal.AmplitudePayload{
+			APIKey: p.config.APIKey,
+			Events: events,
+		})
+
+		result := p.responseProcessor.Process(storageEvents, response)
+
+		if result.Code == http.StatusRequestEntityTooLarge && len(result.EventsForRetry) > 0 {
+			p.reduceChunkSize()
+		}
+
+		executeCallback := p.config.ExecuteCallback
+		if executeCallback != nil && len(result.EventsForCallback) > 0 {
+			go func() {
+				for _, event := range result.EventsForCallback {
+					executeCallback(types.ExecuteResult{
+						PluginName: p.Name(),
+						Event:      event.Event,
+						Code:       result.Code,
+						Message:    result.Message,
+					})
+				}
+			}()
+		}
 	}
 }
 
 func (p *amplitudePlugin) Shutdown() {
 	p.messageChannelMu.Lock()
+
+	if p.messageChannel == nil {
+		p.messageChannelMu.Unlock()
+
+		return
+	}
+
 	messageChannel := p.messageChannel
 	p.messageChannel = nil
 	p.messageChannelMu.Unlock()
@@ -157,7 +225,33 @@ func (p *amplitudePlugin) Shutdown() {
 	close(messageChannel)
 }
 
-func isValidEvent(event *types.Event) bool {
-	return event.EventType != "" && (event.UserID != "" || event.DeviceID != "" ||
-		event.EventOptions.UserID != "" || event.EventOptions.DeviceID != "")
+func (p *amplitudePlugin) reduceChunkSize() {
+	p.sizeDivider++
+
+	p.chunkSize = p.config.FlushQueueSize / p.sizeDivider
+	if p.chunkSize < 1 {
+		p.chunkSize = 1
+	}
+}
+
+func (p *amplitudePlugin) SetHTTPClient(client internal.AmplitudeHTTPClient) {
+	p.client = client
+}
+
+func (p *amplitudePlugin) SetResponseProcessor(responseProcessor internal.AmplitudeResponseProcessor) {
+	p.responseProcessor = responseProcessor
+}
+
+func IsValidAmplitudeEvent(event *types.Event) bool {
+	userID := event.EventOptions.UserID
+	if userID == "" {
+		userID = event.UserID
+	}
+
+	deviceID := event.EventOptions.DeviceID
+	if deviceID == "" {
+		deviceID = event.DeviceID
+	}
+
+	return event.EventType != "" && (userID != "" || deviceID != "")
 }

@@ -16,9 +16,11 @@ type Event struct {
 }
 
 func (e Event) Clone() Event {
+	optionsClone := e.EventOptions.Clone()
+
 	return Event{
 		EventType:       e.EventType,
-		EventOptions:    e.EventOptions,
+		EventOptions:    *optionsClone,
 		EventProperties: cloneProperties(e.EventProperties),
 		UserProperties:  cloneIdentityProperties(e.UserProperties),
 		Groups:          cloneGroups(e.Groups),
@@ -141,7 +143,7 @@ func cloneUnknown(value interface{}) interface{} {
 		return cloneUnknowns(value)
 	case map[string]interface{}:
 		clone := make(map[string]interface{}, len(value))
-		for k, v := range clone {
+		for k, v := range value {
 			clone[k] = cloneUnknown(v)
 		}
 
