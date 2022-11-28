@@ -32,7 +32,7 @@ This is Amplitude's latest and official version of Go SDK.
 Install analytics-go using go get:
 
 ```
-go get https://github.com/amplitude/analytics-go
+go get github.com/amplitude/analytics-go
 ```
 
 ## Usage
