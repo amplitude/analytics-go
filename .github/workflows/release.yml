@@ -6,6 +6,10 @@ on:
       packageVersion:
         description: "The version to publish (patch, minor, current)"
         required: true
+      dryRun:
+        description: "Do a dry run to preview instead of a real release (true/false)"
+        required: true
+        default: "true"
 
 permissions:
   contents: write
@@ -28,7 +32,8 @@ jobs:
     needs: [authorize]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout for ${{ github.event.inputs.dryRun != 'false' && 'dry run' || 'PRODUCTION RELEASE' }}
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
           ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
@@ -69,12 +74,13 @@ jobs:
           git tag "v${{ steps.new_version.outputs.new_tag }}"
 
       - name: Push Git changes
-        if: ${{ github.event.inputs.packageVersion != 'current' }}
+        if: ${{ github.event.inputs.packageVersion != 'current' && github.event.inputs.dryRun == 'false' }}
         run: |
           git push
           git push --tags
 
       - name: Release version
+        if: ${{ github.event.inputs.dryRun == 'false' }}
         uses: goreleaser/goreleaser-action@v4
         with:
           version: latest
@@ -83,4 +89,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Go Module Index
+        if: ${{ github.event.inputs.dryRun == 'false' }}
         run: curl "https://proxy.golang.org/github.com/amplitude/analytics-go/@v/$(git describe HEAD --tags --abbrev=0).info"
