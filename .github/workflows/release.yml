@@ -6,6 +6,10 @@ on:
       packageVersion:
         description: "The version to publish (patch, minor, current)"
         required: true
+      dryRun:
+        description: "Do a dry run to preview instead of a real release (true/false)"
+        required: true
+        default: "true"
 
 permissions:
   contents: write
@@ -28,9 +32,11 @@ jobs:
     needs: [authorize]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout for ${{ github.event.inputs.dryRun != 'false' && 'dry run' || 'PRODUCTION RELEASE' }}
+        uses: actions/checkout@v3
         with:
-          fetch-depth: '0'
+          fetch-depth: 0
+          ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
 
       - name: Setup Go
         uses: actions/setup-go@v3
@@ -43,7 +49,7 @@ jobs:
 
       - name: Get new version
         id: new_version
-        uses: anothrNick/github-tag-action@1.40.0
+        uses: anothrNick/github-tag-action@1.55.0
         if: ${{ github.event.inputs.packageVersion != 'current' }}
         env:
           DRY_RUN: true
@@ -51,25 +57,31 @@ jobs:
           WITH_V: false
           DEFAULT_BUMP: ${{ github.event.inputs.packageVersion }}
 
+      - name: Configure Git User
+        run: |
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+
       - name: Update SdkVersion in constants.go
         if: ${{ github.event.inputs.packageVersion != 'current' }}
         run: |
           sed -i -e 's/\(SdkVersion\s*=\s*\)"[^"]*"/\1"${{ steps.new_version.outputs.new_tag }}"/' ./amplitude/constants/constants.go
-          git config user.name "$GITHUB_ACTOR"
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
           git commit -am "v${{ steps.new_version.outputs.new_tag }}"
-          git push
 
-      - name: Bump version and push tag
-        uses: anothrNick/github-tag-action@1.40.0
+      - name: Create version tag
         if: ${{ github.event.inputs.packageVersion != 'current' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: true
-          DEFAULT_BUMP: ${{ github.event.inputs.packageVersion }}
+        run: |
+          git tag "v${{ steps.new_version.outputs.new_tag }}"
+
+      - name: Push Git changes
+        if: ${{ github.event.inputs.packageVersion != 'current' && github.event.inputs.dryRun == 'false' }}
+        run: |
+          git push
+          git push --tags
 
       - name: Release version
-        uses: goreleaser/goreleaser-action@v2
+        if: ${{ github.event.inputs.dryRun == 'false' }}
+        uses: goreleaser/goreleaser-action@v4
         with:
           version: latest
           args: release --rm-dist
@@ -77,4 +89,5 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Update Go Module Index
+        if: ${{ github.event.inputs.dryRun == 'false' }}
         run: curl "https://proxy.golang.org/github.com/amplitude/analytics-go/@v/$(git describe HEAD --tags --abbrev=0).info"
