@@ -52,10 +52,8 @@ func main() {
 	// Track a basic event
 	// One of UserID and DeviceID is required
 	client.Track(amplitude.Event{
-		EventType: "Button Clicked",
-		EventOptions: amplitude.EventOptions{
-			UserID: "user-id",
-		},
+		EventType: "type-of-event",
+		UserID:    "user-id",
 	})
 
 	// Flushed queued events and shutdown the client
