@@ -192,6 +192,10 @@ func (p *amplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 			p.reduceChunkSize()
 		}
 
+		if len(result.EventsForRetry) > 0 {
+			p.storage.ReturnBack(result.EventsForRetry...)
+		}
+
 		executeCallback := p.config.ExecuteCallback
 		if executeCallback != nil && len(result.EventsForCallback) > 0 {
 			go func() {
