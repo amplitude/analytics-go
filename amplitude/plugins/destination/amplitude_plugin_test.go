@@ -337,6 +337,7 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ReduceChunkSize() {
 	storage.On("Pull", flushQueueSize/2, mock.Anything).Return([]*types.StorageEvent{storageEvent1}).Once()
 	storage.On("Pull", flushQueueSize/2, mock.Anything).Return([]*types.StorageEvent{storageEvent2}).Once()
 	storage.On("Pull", flushQueueSize/2, mock.Anything).Return(nil).Once()
+	storage.On("ReturnBack", []*types.StorageEvent{storageEvent1, storageEvent2}).Return(nil).Once()
 
 	httpClient := &mockHTTPClient{}
 	httpClient.On("Send", internal.AmplitudePayload{
