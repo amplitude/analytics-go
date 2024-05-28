@@ -27,7 +27,7 @@ type AmplitudeHTTPClientSuiteSuite struct {
 }
 
 func (t *AmplitudeHTTPClientSuiteSuite) TestSend_Success() {
-	server := t.createTestServer(0)
+	server := t.createTestServer(0, 200, `{"code": 234, "error": "some server error"}`)
 
 	client := internal.NewAmplitudeHTTPClient(
 		server.URL,
@@ -96,7 +96,7 @@ func (t *AmplitudeHTTPClientSuiteSuite) TestSend_Success() {
 }
 
 func (t *AmplitudeHTTPClientSuiteSuite) TestSend_Empty() {
-	server := t.createTestServer(0)
+	server := t.createTestServer(0, 200, `{"code": 234, "error": "some server error"}`)
 
 	client := internal.NewAmplitudeHTTPClient(
 		server.URL,
@@ -122,7 +122,7 @@ func (t *AmplitudeHTTPClientSuiteSuite) TestSend_Empty() {
 
 func (t *AmplitudeHTTPClientSuiteSuite) TestSend_Timeout() {
 	timeout := time.Millisecond * 100
-	server := t.createTestServer(timeout * 2)
+	server := t.createTestServer(timeout * 2, 200, `{"code": 234, "error": "some server error"}`)
 
 	client := internal.NewAmplitudeHTTPClient(
 		server.URL,
@@ -147,13 +147,67 @@ func (t *AmplitudeHTTPClientSuiteSuite) TestSend_Timeout() {
 	server.Close()
 }
 
+func (t *AmplitudeHTTPClientSuiteSuite) TestSend_NonJsonResponse() {
+	server := t.createTestServer(0, 413, `<html>
+	<head><title>413 Request Entity Too Large</title></head>
+	<body>
+	<center><h1>413 Request Entity Too Large</h1></center>
+	<hr><center>nginx</center>
+	</body>
+	</html>`)
+
+	client := internal.NewAmplitudeHTTPClient(
+		server.URL,
+		internal.AmplitudePayloadOptions{MinIDLength: 7},
+		noopLogger{},
+		time.Millisecond*1000,
+	)
+
+	response := client.Send(internal.AmplitudePayload{
+		APIKey: "my-api-key",
+		Events: []*types.Event{
+			t.createEvent(1),
+		},
+	})
+
+	t.Require().Equal(internal.AmplitudeResponse{
+		Status: 413,
+		Code:   413,
+	}, response)
+
+	server.Close()
+
+	server.mu.Lock()
+	defer server.mu.Unlock()
+
+	t.Require().Equal(1, len(server.payloads))
+	t.Require().JSONEq(`
+{
+  "api_key": "my-api-key",
+  "events": [
+    {
+      "event_type": "event-1",
+      "user_id": "user-1",
+      "time": 1,
+      "insert_id": "insert-1",
+      "event_properties": {
+        "prop-1": 1
+      }
+    }
+  ],
+  "options": {
+    "min_id_length": 7
+  }
+}`, server.payloads[0])
+}
+
 type testServer struct {
 	*httptest.Server
 	mu       sync.Mutex
 	payloads []string
 }
 
-func (t *AmplitudeHTTPClientSuiteSuite) createTestServer(delay time.Duration) *testServer {
+func (t *AmplitudeHTTPClientSuiteSuite) createTestServer(delay time.Duration, statusCode int, responseBody string) *testServer {
 	server := &testServer{}
 
 	server.Server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -170,7 +224,8 @@ func (t *AmplitudeHTTPClientSuiteSuite) createTestServer(delay time.Duration) *t
 		defer server.mu.Unlock()
 		server.payloads = append(server.payloads, string(body))
 
-		_, _ = w.Write([]byte(`{"code": 234, "error": "some server error"}`))
+		w.WriteHeader(statusCode)
+		_, _ = w.Write([]byte(responseBody))
 	}))
 
 	return server
