@@ -109,7 +109,7 @@ func (c *amplitudeHTTPClient) Send(payload AmplitudePayload) AmplitudeResponse {
 	var amplitudeResponse AmplitudeResponse
 	if json.Valid(body) {
 		_ = json.Unmarshal(body, &amplitudeResponse)
-	}else{
+	} else {
 		c.logger.Debugf("HTTP response body is not valid JSON: %s", string(body))
 		amplitudeResponse.Code = response.StatusCode
 	}
