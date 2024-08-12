@@ -122,7 +122,7 @@ func (t *AmplitudeHTTPClientSuiteSuite) TestSend_Empty() {
 
 func (t *AmplitudeHTTPClientSuiteSuite) TestSend_Timeout() {
 	timeout := time.Millisecond * 100
-	server := t.createTestServer(timeout * 2, 200, `{"code": 234, "error": "some server error"}`)
+	server := t.createTestServer(timeout*2, 200, `{"code": 234, "error": "some server error"}`)
 
 	client := internal.NewAmplitudeHTTPClient(
 		server.URL,
@@ -172,7 +172,9 @@ func (t *AmplitudeHTTPClientSuiteSuite) TestSend_NonJsonResponse() {
 
 	t.Require().Equal(internal.AmplitudeResponse{
 		Status: 413,
-		Code:   413,
+		// amplitude_http_client always returns Code:0
+		// if response body cannot be parsed (not json).
+		Code: 0,
 	}, response)
 
 	server.Close()

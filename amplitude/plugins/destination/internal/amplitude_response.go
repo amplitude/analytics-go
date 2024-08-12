@@ -7,10 +7,14 @@ import (
 )
 
 type AmplitudeResponse struct {
-	Status int   `json:"-"`
-	Err    error `json:"-"`
+	// An HTTP Response Code
+	Status int `json:"-"`
+	// An HTTP Response Err
+	Err error `json:"-"`
 
-	Code  int    `json:"code"`
+	// Code from the Response Body json
+	Code int `json:"code"`
+	// Error from the Response Body json
 	Error string `json:"error"`
 
 	MissingField               string           `json:"missing_field"`

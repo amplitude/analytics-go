@@ -333,6 +333,83 @@ func (t *AmplitudeResponseProcessorSuite) TestProcessUnknownError_ResponseError(
 	require.Equal(0, len(result.EventsForRetry))
 }
 
+func (t *AmplitudeResponseProcessorSuite) Test_Process_Overrides_Code_Eq_0() {
+	testCases := []struct {
+		name           string
+		httpStatusCode int
+		expectCode     int
+	}{
+		{
+			name:           "StatusCode:200 - success",
+			httpStatusCode: 200,
+			expectCode:     200,
+		},
+		{
+			name:           "StatusCode:299 - success",
+			httpStatusCode: 299,
+			expectCode:     200,
+		},
+		{
+			name:           "StatusCode:100 - unexpected, returns -1",
+			httpStatusCode: 100,
+			expectCode:     -1,
+		},
+		{
+			name:           "StatusCode:429 - too many requests",
+			httpStatusCode: http.StatusTooManyRequests,
+			expectCode:     429,
+		},
+		{
+			name:           "StatusCode:413 - request entity too large",
+			httpStatusCode: http.StatusRequestEntityTooLarge,
+			expectCode:     413,
+		},
+		{
+			name:           "StatusCode:408 - request timeout",
+			httpStatusCode: http.StatusRequestTimeout,
+			expectCode:     408,
+		},
+		{
+			name:           "StatusCode:400 - bad request",
+			httpStatusCode: http.StatusBadRequest,
+			expectCode:     400,
+		},
+		{
+			name:           "StatusCode:418 - tea pot (and other unhandled 4xx)",
+			httpStatusCode: http.StatusTeapot,
+			expectCode:     400,
+		},
+		{
+			name:           "StatusCode:500 - internal server error",
+			httpStatusCode: http.StatusInternalServerError,
+			expectCode:     500,
+		},
+		{
+			name:           "StatusCode:502 - bad gateway (and other unhandled 5xx)",
+			httpStatusCode: http.StatusBadGateway,
+			expectCode:     500,
+		},
+	}
+
+	for _, tt := range testCases {
+		t.Run(tt.name, func() {
+			events := t.cloneOriginalEvents()
+			p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
+				Now:    time.Now,
+				Logger: noopLogger{},
+			})
+
+			result := p.Process(events, internal.AmplitudeResponse{
+				Status: tt.httpStatusCode,
+				// processor.Process must override Code=0
+				// with a normalized StatusCode
+				Code: 0,
+			})
+			t.Require().Equal(tt.expectCode, result.Code)
+		})
+	}
+}
+
 func (t *AmplitudeResponseProcessorSuite) cloneOriginalEvents() []*types.StorageEvent {
 	events := make([]*types.StorageEvent, len(originalEvents))
 
