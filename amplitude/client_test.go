@@ -159,6 +159,7 @@ func (t *ClientSuite) TestRevenue() {
 		Quantity:    45,
 		ProductID:   "product-1",
 		RevenueType: "revenue-1",
+		Currency:    "USD",
 		Receipt:     "receipt-1",
 		ReceiptSig:  "sig-1",
 		Revenue:     7,
@@ -172,6 +173,7 @@ func (t *ClientSuite) TestRevenue() {
     "ip": "IP 1",
     "city": "IP 1 city",
     "event_properties": {
+	  "$currency": "USD",
       "$price": 12.3,
       "$quantity": 45,
       "$productId": "product-1",
