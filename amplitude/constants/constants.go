@@ -20,6 +20,7 @@ const (
 	RevenueQuantity   = "$quantity"
 	RevenuePrice      = "$price"
 	RevenueType       = "$revenueType"
+	Currency          = "$currency"
 	RevenueReceipt    = "$receipt"
 	RevenueReceiptSig = "$receiptSig"
 	DefaultRevenue    = "$revenue"
