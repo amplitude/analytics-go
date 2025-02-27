@@ -44,6 +44,10 @@ type amplitudeResponseProcessor struct {
 func (p *amplitudeResponseProcessor) Process(events []*types.StorageEvent, response AmplitudeResponse) AmplitudeProcessorResult {
 	responseStatus := response.normalizedStatus()
 
+	if response.Code == 0 {
+		response.Code = responseStatus
+	}
+
 	var urlErr *url.Error
 	isURLErr := errors.As(response.Err, &urlErr)
 
