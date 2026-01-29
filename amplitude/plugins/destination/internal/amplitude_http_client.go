@@ -69,19 +69,19 @@ func (c *amplitudeHTTPClient) Send(payload AmplitudePayload) AmplitudeResponse {
 
 	c.logger.Debugf("Original payload size: %d bytes", len(payloadBytes))
 
-	// Always compress payload with gzip
+	// Try to compress payload with gzip
+	var requestBody io.Reader
+	useCompression := false
 	compressed, err := c.compressPayload(payloadBytes)
 	if err != nil {
-		c.logger.Errorf("payload compression failed: %w", err)
-		return AmplitudeResponse{
-			Err: fmt.Errorf("can't compress payload: %w", err),
-		}
+		c.logger.Warnf("payload compression failed, falling back to uncompressed: %v", err)
+		requestBody = bytes.NewReader(payloadBytes)
+	} else {
+		compressionRatio := float64(compressed.Len()) / float64(len(payloadBytes)) * 100
+		c.logger.Debugf("Compressed payload size: %d bytes (%.1f%% of original)", compressed.Len(), compressionRatio)
+		requestBody = compressed
+		useCompression = true
 	}
-
-	compressionRatio := float64(compressed.Len()) / float64(len(payloadBytes)) * 100
-	c.logger.Debugf("Compressed payload size: %d bytes (%.1f%% of original)", compressed.Len(), compressionRatio)
-
-	requestBody := compressed
 
 	request, err := http.NewRequest(http.MethodPost, c.serverURL, requestBody)
 	if err != nil {
@@ -94,7 +94,9 @@ func (c *amplitudeHTTPClient) Send(payload AmplitudePayload) AmplitudeResponse {
 
 	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("Accept", "*/*")
-	request.Header.Set("Content-Encoding", "gzip")
+	if useCompression {
+		request.Header.Set("Content-Encoding", "gzip")
+	}
 
 	response, err := c.httpClient.Do(request)
 	if err != nil {
