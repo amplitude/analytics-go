@@ -74,7 +74,7 @@ func (c *amplitudeHTTPClient) Send(payload AmplitudePayload) AmplitudeResponse {
 	useCompression := false
 	compressed, err := c.compressPayload(payloadBytes)
 	if err != nil {
-		c.logger.Warnf("payload compression failed, falling back to uncompressed: %w", err)
+		c.logger.Warnf("payload compression failed, falling back to uncompressed: %v", err)
 		requestBody = bytes.NewReader(payloadBytes)
 	} else {
 		compressionRatio := float64(compressed.Len()) / float64(len(payloadBytes)) * 100
