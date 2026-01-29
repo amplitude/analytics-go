@@ -1,6 +1,7 @@
 package internal_test
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -215,7 +216,17 @@ func (t *AmplitudeHTTPClientSuiteSuite) createTestServer(delay time.Duration, st
 			time.Sleep(delay)
 		}
 
-		body, err := io.ReadAll(r.Body)
+		var bodyReader io.Reader = r.Body
+
+		// Decompress if the request is gzip compressed
+		if r.Header.Get("Content-Encoding") == "gzip" {
+			gzipReader, err := gzip.NewReader(r.Body)
+			t.Require().Nil(err)
+			defer gzipReader.Close()
+			bodyReader = gzipReader
+		}
+
+		body, err := io.ReadAll(bodyReader)
 		t.Require().Nil(err)
 
 		t.Require().True(json.Valid(body))
