@@ -21,6 +21,7 @@ type amplitudePlugin struct {
 	responseProcessor internal.AmplitudeResponseProcessor
 	messageChannel    chan amplitudeMessage
 	messageChannelMu  sync.RWMutex
+	callbackWg        sync.WaitGroup
 
 	chunkSize   int
 	sizeDivider int
@@ -198,7 +199,9 @@ func (p *amplitudePlugin) sendEventsFromStorage(wg *sync.WaitGroup) {
 
 		executeCallback := p.config.ExecuteCallback
 		if executeCallback != nil && len(result.EventsForCallback) > 0 {
+			p.callbackWg.Add(1)
 			go func() {
+				defer p.callbackWg.Done()
 				for _, event := range result.EventsForCallback {
 					executeCallback(types.ExecuteResult{
 						PluginName: p.Name(),
@@ -227,6 +230,7 @@ func (p *amplitudePlugin) Shutdown() {
 
 	p.flush(messageChannel)
 	close(messageChannel)
+	p.callbackWg.Wait()
 }
 
 func (p *amplitudePlugin) reduceChunkSize() {
