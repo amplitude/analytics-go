@@ -111,8 +111,12 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ShutdownWaitsForCallbacks() {
 
 	// slow is written by the callback goroutine and read after Shutdown() returns.
 	// With the -race flag this detects the race if Shutdown() doesn't wait.
+	//
+	// callbackStarted is closed BEFORE the write to slow, so <-callbackStarted
+	// only establishes happens-before up to that point — not to the write.
+	// If Shutdown() returns early, the race detector catches the write/read race.
 	var slow string
-	callbackDone := make(chan struct{})
+	callbackStarted := make(chan struct{})
 	plugin.SetHTTPClient(httpClient)
 	plugin.SetResponseProcessor(responseProcessor)
 	plugin.Setup(types.Config{
@@ -126,13 +130,13 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_ShutdownWaitsForCallbacks() {
 		},
 		Logger: noopLogger{},
 		ExecuteCallback: func(result types.ExecuteResult) {
-			slow = result.Event.EventType // write in goroutine
-			close(callbackDone)
+			close(callbackStarted)           // signal: goroutine started (no HB to write below)
+			slow = result.Event.EventType    // write races with main read if Shutdown doesn't wait
 		},
 	})
 
 	plugin.Execute(event)
-	<-callbackDone   // wait until the goroutine has been spawned and started
+	<-callbackStarted // wait until the callback goroutine has started (not yet written slow)
 	plugin.Shutdown() // must not return until the goroutine completes
 
 	// Reading slow here races with the goroutine if Shutdown() didn't wait.

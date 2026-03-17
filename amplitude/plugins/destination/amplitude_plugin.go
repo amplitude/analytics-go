@@ -220,6 +220,7 @@ func (p *amplitudePlugin) Shutdown() {
 
 	if p.messageChannel == nil {
 		p.messageChannelMu.Unlock()
+		p.callbackWg.Wait()
 
 		return
 	}
