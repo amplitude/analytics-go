@@ -84,6 +84,65 @@ func (t *AmplitudePluginSuite) TestAmplitudePlugin_Basic() {
 	require.Equal(types.PluginTypeDestination, plugin.Type())
 }
 
+// TestAmplitudePlugin_ShutdownWaitsForCallbacks verifies that Shutdown() blocks
+// until all ExecuteCallback goroutines have finished. Before the fix, Shutdown()
+// returned while callback goroutines were still running, causing data races when
+// callers immediately freed shared state (e.g. replaced a channel) after Shutdown().
+func (t *AmplitudePluginSuite) TestAmplitudePlugin_ShutdownWaitsForCallbacks() {
+	plugin := destination.NewAmplitudePlugin().(AmplitudePlugin)
+
+	event := t.createEvent(1)
+	storageEvent := &types.StorageEvent{Event: event}
+
+	storage := &mockStorage{}
+	storage.On("PushNew", storageEvent).Once()
+	storage.On("Count", mock.Anything).Return(1).Once()
+	storage.On("Pull", 1, mock.Anything).Return([]*types.StorageEvent{storageEvent}).Once()
+	storage.On("Pull", 1, mock.Anything).Return(nil)
+
+	httpClient := &mockHTTPClient{}
+	httpClient.On("Send", mock.Anything).Return(internal.AmplitudeResponse{Status: 200})
+
+	responseProcessor := &mockResponseProcessor{}
+	responseProcessor.On("Process", mock.Anything, mock.Anything).Return(internal.AmplitudeProcessorResult{
+		Code:              200,
+		EventsForCallback: []*types.StorageEvent{storageEvent},
+	})
+
+	// slow is written by the callback goroutine and read after Shutdown() returns.
+	// With the -race flag this detects the race if Shutdown() doesn't wait.
+	//
+	// callbackStarted is closed BEFORE the write to slow, so <-callbackStarted
+	// only establishes happens-before up to that point — not to the write.
+	// If Shutdown() returns early, the race detector catches the write/read race.
+	var slow string
+	callbackStarted := make(chan struct{})
+	plugin.SetHTTPClient(httpClient)
+	plugin.SetResponseProcessor(responseProcessor)
+	plugin.Setup(types.Config{
+		APIKey:             "my-api-key",
+		MaxStorageCapacity: 10,
+		FlushInterval:      time.Millisecond,
+		FlushQueueSize:     1,
+		FlushSizeDivider:   1,
+		StorageFactory: func() types.EventStorage {
+			return storage
+		},
+		Logger: noopLogger{},
+		ExecuteCallback: func(result types.ExecuteResult) {
+			close(callbackStarted)           // signal: goroutine started (no HB to write below)
+			slow = result.Event.EventType    // write races with main read if Shutdown doesn't wait
+		},
+	})
+
+	plugin.Execute(event)
+	<-callbackStarted // wait until the callback goroutine has started (not yet written slow)
+	plugin.Shutdown() // must not return until the goroutine completes
+
+	// Reading slow here races with the goroutine if Shutdown() didn't wait.
+	t.Require().Equal(event.EventType, slow)
+}
+
 func (t *AmplitudePluginSuite) TestAmplitudePlugin_FlushInterval() {
 	plugin := destination.NewAmplitudePlugin().(AmplitudePlugin)
 
