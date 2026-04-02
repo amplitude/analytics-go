@@ -33,13 +33,13 @@ jobs:
 
     steps:
       - name: Checkout for ${{ github.event.inputs.dryRun != 'false' && 'dry run' || 'PRODUCTION RELEASE' }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3
         with:
           fetch-depth: 0
           ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
 
       - name: Setup Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@be3c94b385c4f180051c996d336f57a34c397495 # v3
         with:
           go-version: '>=1.17'
           cache: true
@@ -49,7 +49,7 @@ jobs:
 
       - name: Get new version
         id: new_version
-        uses: anothrNick/github-tag-action@1.55.0
+        uses: anothrNick/github-tag-action@2fa498388d20664f4474176ac45845e037377886 # 1.55.0
         if: ${{ github.event.inputs.packageVersion != 'current' }}
         env:
           DRY_RUN: true
@@ -81,7 +81,7 @@ jobs:
 
       - name: Release version
         if: ${{ github.event.inputs.dryRun == 'false' }}
-        uses: goreleaser/goreleaser-action@v4
+        uses: goreleaser/goreleaser-action@5fdedb94abba051217030cc86d4523cf3f02243d # v4
         with:
           version: latest
           args: release --clean
