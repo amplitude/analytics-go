@@ -2,7 +2,9 @@ package internal_test
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -96,6 +98,45 @@ func (t *AmplitudeResponseProcessorSuite) TestTimeout() {
 		require.Equal(originalEvent, *event.Event)
 		require.Equal(1, event.RetryCount)
 		require.Equal(now.Add(retryBaseInterval), event.RetryAt)
+	}
+}
+
+func (t *AmplitudeResponseProcessorSuite) TestNetworkError() {
+	for _, err := range []error{
+		errors.New("dial tcp: lookup api2.amplitude.com: no such host"),
+		errors.New("dial tcp 127.0.0.1:443: connect: connection refused"),
+		errors.New("tls: failed to verify certificate: x509: certificate is valid for portal.example, not api2.amplitude.com"),
+	} {
+		events := t.cloneOriginalEvents()
+		events[1].RetryCount = 2
+
+		now := time.Now()
+		retryBaseInterval := time.Second * 3
+
+		p := internal.NewAmplitudeResponseProcessor(internal.AmplitudeResponseProcessorOptions{
+			MaxRetries:        2,
+			RetryBaseInterval: retryBaseInterval,
+			Now:               func() time.Time { return now },
+			Logger:            loggers.NewDefaultLogger(),
+		})
+
+		// amplitudeHTTPClient.Send wraps the error from http.Client.Do.
+		result := p.Process(events, internal.AmplitudeResponse{
+			Err: fmt.Errorf("HTTP request failed: %w", &url.Error{Op: "Post", URL: "https://api2.amplitude.com/2/httpapi", Err: err}),
+		})
+
+		require := t.Require()
+		require.Equal(1, len(result.EventsForCallback), err.Error())
+		require.Equal(originalEvents[1], *result.EventsForCallback[0].Event)
+
+		require.Equal(2, len(result.EventsForRetry), err.Error())
+
+		for i, originalEvent := range []types.Event{originalEvents[0], originalEvents[2]} {
+			event := *result.EventsForRetry[i]
+			require.Equal(originalEvent, *event.Event)
+			require.Equal(1, event.RetryCount)
+			require.Equal(now.Add(retryBaseInterval), event.RetryAt)
+		}
 	}
 }
 

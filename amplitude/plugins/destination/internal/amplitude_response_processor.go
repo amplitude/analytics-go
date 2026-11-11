@@ -54,7 +54,11 @@ func (p *amplitudeResponseProcessor) Process(events []*types.StorageEvent, respo
 	switch {
 	case isSuccess:
 		result = p.processSuccess(events, response)
-	case (isURLErr && urlErr.Timeout()) || responseStatus == http.StatusRequestTimeout || responseStatus == http.StatusInternalServerError:
+	// Any transport error, such as a DNS failure, a refused or reset
+	// connection, or a TLS failure behind a captive portal, is retried like
+	// a timeout. The request may not have reached Amplitude, and a retried
+	// event that did arrive is deduplicated by its insert_id.
+	case isURLErr || responseStatus == http.StatusRequestTimeout || responseStatus == http.StatusInternalServerError:
 		result = p.processTimeout(events, response)
 	case responseStatus == http.StatusRequestEntityTooLarge:
 		result = p.processTooLargeRequest(events, response)
